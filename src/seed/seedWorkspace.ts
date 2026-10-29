@@ -25,9 +25,22 @@ export const ids = {
 
 const email = (name: string) => `${slug(name)}@example.com`;
 
+// Idempotent and safe under concurrent first requests: the workspace row is claimed first, inside the
+// same transaction as the seed, so a second caller waits for the first and then finds it already seeded.
 export async function seedWorkspace(db: Db, workspaceId: string): Promise<void> {
+  await db.transaction(async (tx) => {
+    const claimed = await tx
+      .insert(workspaces)
+      .values({ id: workspaceId })
+      .onConflictDoNothing()
+      .returning({ id: workspaces.id });
+    if (claimed.length === 0) return;
+    await seedRows(tx as unknown as Db, workspaceId);
+  });
+}
+
+async function seedRows(db: Db, workspaceId: string): Promise<void> {
   const ws = workspaceId;
-  await db.insert(workspaces).values({ id: ws }).onConflictDoNothing();
 
   await db.insert(programs).values({
     id: ids.program(ws),

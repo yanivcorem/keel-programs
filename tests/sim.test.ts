@@ -68,6 +68,14 @@ describe("simulation", () => {
     expect((await db.select().from(workspaces)).map((w) => w.id)).toEqual(["new"]);
   });
 
+  it("concurrent first requests seed a new visitor once", async () => {
+    const db = await makeTestDb();
+
+    await Promise.all([ensureWorkspace(db, "v2"), ensureWorkspace(db, "v2"), ensureWorkspace(db, "v2")]);
+
+    expect(await db.select().from(startups).where(eq(startups.workspaceId, "v2"))).toHaveLength(10);
+  });
+
   it("ensureWorkspace seeds a new visitor once", async () => {
     const db = await makeTestDb();
 
