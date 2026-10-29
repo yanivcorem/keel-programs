@@ -1,0 +1,298 @@
+{
+  "_note": "Hand-written stand-in until `npm run record` captures real runs (see README). {ws} is replaced with the visitor's workspace id.",
+  "1": {
+    "triage": [
+      {
+        "id": "msg_rec_1",
+        "type": "message",
+        "role": "assistant",
+        "model": "claude-haiku-5-5",
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"category\": \"mentor_feedback\", \"startupId\": \"{ws}:startup:kelpforge\", \"escalate\": false, \"reason\": \"Second co-founder tension flag for Kelpforge in three weeks.\"}"
+          }
+        ],
+        "stop_reason": "end_turn",
+        "stop_sequence": null,
+        "usage": {
+          "input_tokens": 1500,
+          "output_tokens": 180
+        }
+      }
+    ],
+    "pm": [
+      {
+        "id": "msg_rec_2",
+        "type": "message",
+        "role": "assistant",
+        "model": "claude-sonnet-5-5",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_rec_1",
+            "name": "get_startup",
+            "input": {
+              "name": "Kelpforge"
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "usage": {
+          "input_tokens": 1500,
+          "output_tokens": 180
+        }
+      },
+      {
+        "id": "msg_rec_3",
+        "type": "message",
+        "role": "assistant",
+        "model": "claude-sonnet-5-5",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_rec_2",
+            "name": "list_sessions",
+            "input": {
+              "startupId": "{ws}:startup:kelpforge"
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "usage": {
+          "input_tokens": 1500,
+          "output_tokens": 180
+        }
+      },
+      {
+        "id": "msg_rec_4",
+        "type": "message",
+        "role": "assistant",
+        "model": "claude-sonnet-5-5",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_rec_3",
+            "name": "set_risk",
+            "input": {
+              "startupId": "{ws}:startup:kelpforge",
+              "riskLevel": 2,
+              "reason": "Second co-founder tension flag in 3 weeks (Dana, weeks 2 and 5)."
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "usage": {
+          "input_tokens": 1500,
+          "output_tokens": 180
+        }
+      },
+      {
+        "id": "msg_rec_5",
+        "type": "message",
+        "role": "assistant",
+        "model": "claude-sonnet-5-5",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_rec_4",
+            "name": "draft_message",
+            "input": {
+              "toPersonIds": [
+                "{ws}:person:kelpforge-founder"
+              ],
+              "subject": "Quick check-in this week",
+              "body": "Hi Priya,\n\nWe're doing short one-on-one check-ins with founders this week. Could we grab 30 minutes on Wednesday during office hours? Nothing formal, just how things are going on your side.\n\nSam"
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "usage": {
+          "input_tokens": 1500,
+          "output_tokens": 180
+        }
+      },
+      {
+        "id": "msg_rec_6",
+        "type": "message",
+        "role": "assistant",
+        "model": "claude-sonnet-5-5",
+        "content": [
+          {
+            "type": "text",
+            "text": "Raised Kelpforge to risk level 2 after Dana's second co-founder tension flag, and drafted a check-in with Priya for your approval."
+          }
+        ],
+        "stop_reason": "end_turn",
+        "stop_sequence": null,
+        "usage": {
+          "input_tokens": 1500,
+          "output_tokens": 180
+        }
+      }
+    ]
+  },
+  "2": {
+    "triage": [
+      {
+        "id": "msg_rec_7",
+        "type": "message",
+        "role": "assistant",
+        "model": "claude-haiku-5-5",
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"category\": \"participant_request\", \"startupId\": \"{ws}:startup:soilmind\", \"escalate\": false, \"reason\": \"Soilmind asks to swap demo day slots with Tidewatt.\"}"
+          }
+        ],
+        "stop_reason": "end_turn",
+        "stop_sequence": null,
+        "usage": {
+          "input_tokens": 1500,
+          "output_tokens": 180
+        }
+      }
+    ],
+    "pm": [
+      {
+        "id": "msg_rec_8",
+        "type": "message",
+        "role": "assistant",
+        "model": "claude-sonnet-5-5",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_rec_5",
+            "name": "get_demo_day_schedule",
+            "input": {}
+          }
+        ],
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "usage": {
+          "input_tokens": 1500,
+          "output_tokens": 180
+        }
+      },
+      {
+        "id": "msg_rec_9",
+        "type": "message",
+        "role": "assistant",
+        "model": "claude-sonnet-5-5",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_rec_6",
+            "name": "draft_calendar_change",
+            "input": {
+              "startupId": "{ws}:startup:soilmind",
+              "fromSlot": 2,
+              "toSlot": 1
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "usage": {
+          "input_tokens": 1500,
+          "output_tokens": 180
+        }
+      },
+      {
+        "id": "msg_rec_10",
+        "type": "message",
+        "role": "assistant",
+        "model": "claude-sonnet-5-5",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_rec_7",
+            "name": "draft_message",
+            "input": {
+              "toPersonIds": [
+                "{ws}:person:soilmind-founder",
+                "{ws}:person:tidewatt-founder"
+              ],
+              "subject": "Demo day slots",
+              "body": "Hi Mateo and Lena,\n\nThanks for sorting this between you. Once approved, Soilmind moves to slot 1 and Tidewatt to slot 2. I'll confirm the final running order by Friday.\n\nSam"
+            }
+          }
+        ],
+        "stop_reason": "tool_use",
+        "stop_sequence": null,
+        "usage": {
+          "input_tokens": 1500,
+          "output_tokens": 180
+        }
+      },
+      {
+        "id": "msg_rec_11",
+        "type": "message",
+        "role": "assistant",
+        "model": "claude-sonnet-5-5",
+        "content": [
+          {
+            "type": "text",
+            "text": "Drafted the slot swap (Soilmind to 1, Tidewatt to 2) and a confirmation to both founders. Both wait for your approval."
+          }
+        ],
+        "stop_reason": "end_turn",
+        "stop_sequence": null,
+        "usage": {
+          "input_tokens": 1500,
+          "output_tokens": 180
+        }
+      }
+    ]
+  },
+  "3": {
+    "triage": [
+      {
+        "id": "msg_rec_12",
+        "type": "message",
+        "role": "assistant",
+        "model": "claude-haiku-5-5",
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"category\": \"participant_request\", \"startupId\": \"{ws}:startup:gridlet\", \"escalate\": true, \"reason\": \"Gridlet asks for a warm intro to an investor. Intros are yours to decide.\"}"
+          }
+        ],
+        "stop_reason": "end_turn",
+        "stop_sequence": null,
+        "usage": {
+          "input_tokens": 1500,
+          "output_tokens": 180
+        }
+      }
+    ],
+    "pm": []
+  },
+  "4": {
+    "triage": [
+      {
+        "id": "msg_rec_13",
+        "type": "message",
+        "role": "assistant",
+        "model": "claude-haiku-5-5",
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"category\": \"participant_request\", \"startupId\": \"{ws}:startup:brinewell\", \"escalate\": true, \"reason\": \"Brinewell asks for a stipend advance. Money questions go to you.\"}"
+          }
+        ],
+        "stop_reason": "end_turn",
+        "stop_sequence": null,
+        "usage": {
+          "input_tokens": 1500,
+          "output_tokens": 180
+        }
+      }
+    ],
+    "pm": []
+  }
+}
