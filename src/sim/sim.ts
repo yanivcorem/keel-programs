@@ -2,7 +2,7 @@ import { and, eq, lt } from "drizzle-orm";
 import { handleInbound } from "../agent/handleInbound";
 import type { Db } from "../db/client";
 import { inboundItems, people, workspaces } from "../db/schema";
-import { pickClient } from "../guard/guard";
+import { pickClient, type Clients } from "../guard/guard";
 import { SCRIPT } from "../seed/script";
 import { seedWorkspace } from "../seed/seedWorkspace";
 
@@ -14,7 +14,7 @@ export async function ensureWorkspace(db: Db, workspaceId: string): Promise<void
 }
 
 export async function advanceDay(
-  deps: { db: Db; now?: Date },
+  deps: { db: Db; now?: Date; pick?: (db: Db, ws: string, now: Date, simDay: number) => Promise<Clients> },
   workspaceId: string,
 ): Promise<{ simDay: number; added: number; message?: string }> {
   const { db } = deps;
@@ -46,8 +46,17 @@ export async function advanceDay(
       subject: item.subject,
       body: item.body,
     });
-    const clients = await pickClient(db, workspaceId, now, next);
-    await handleInbound({ db, ...clients }, workspaceId, id);
+    const clients = await (deps.pick ?? pickClient)(db, workspaceId, now, next);
+    try {
+      await handleInbound({ db, ...clients }, workspaceId, id);
+    } catch (err) {
+      // An API outage must not strand the item or the day: hand it to the human instead.
+      console.error("handleInbound failed", err);
+      await db
+        .update(inboundItems)
+        .set({ state: "needs_call", reason: "the model was unavailable" })
+        .where(and(eq(inboundItems.id, id), eq(inboundItems.workspaceId, workspaceId)));
+    }
   }
   return { simDay: next, added: items.length };
 }

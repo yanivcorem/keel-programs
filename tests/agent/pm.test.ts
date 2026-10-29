@@ -102,6 +102,41 @@ describe("handleInbound", () => {
     expect(row.reason).toMatch(/delete_everything/);
   });
 
+  it("escalate stops the step: no drafts from the same response", async () => {
+    const db = await seededDb();
+    const id = await addInbound(db, "w1", "w1:inbound:6");
+    const triageLlm = scriptedClient([
+      triageReply({ category: "participant_request", startupId: null, escalate: false, reason: "x" }),
+    ]);
+    const both = toolUse("escalate", { reason: "money" });
+    (both.content as unknown[]).push({
+      type: "tool_use",
+      id: "toolu_extra",
+      name: "draft_message",
+      input: { toPersonIds: ["w1:person:brinewell-founder"], subject: "s", body: "b" },
+    });
+
+    await handleInbound({ db, llm: scriptedClient([both]), triageLlm }, "w1", id);
+
+    expect((await item(db, id)).state).toBe("needs_call");
+    expect(await db.select().from(drafts)).toHaveLength(0);
+  });
+
+  it("a run that throws mid-loop still records the tokens it spent", async () => {
+    const db = await seededDb();
+    const id = await addInbound(db, "w1", "w1:inbound:7");
+    const triageLlm = scriptedClient([
+      triageReply({ category: "other", startupId: null, escalate: false, reason: "x" }),
+    ]);
+    const llm = scriptedClient([toolUse("get_demo_day_schedule", {})]);
+
+    await expect(handleInbound({ db, llm, triageLlm }, "w1", id)).rejects.toThrow("scripted client exhausted");
+
+    const [run] = await db.select().from(agentRuns).where(eq(agentRuns.agent, "pm"));
+    expect(run.inputTokens).toBe(1000);
+    expect(run.costUsd).toBeGreaterThan(0);
+  });
+
   it("step limit escalates", async () => {
     const db = await seededDb();
     const id = await addInbound(db, "w1", "w1:inbound:5");

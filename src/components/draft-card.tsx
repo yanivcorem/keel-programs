@@ -5,6 +5,7 @@ import { approveAction, rejectAction } from "@/app/actions/demo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { editFor } from "@/lib/drafts";
 
 type Draft = {
   id: string;
@@ -54,7 +55,7 @@ export function DraftCard({ draft, startupNames }: { draft: Draft; startupNames:
             size="sm"
             disabled={pending}
             onClick={() =>
-              startTransition(() => approveAction(draft.id, editing && body !== msg.body ? { body } : undefined))
+              startTransition(() => approveAction(draft.id, editFor(msg.body, body)))
             }
           >
             {draft.kind === "message" ? "Approve (mark sent)" : "Approve"}

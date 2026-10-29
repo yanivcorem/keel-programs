@@ -35,9 +35,7 @@ export async function runPmAgent(
     .from(inboundItems)
     .where(and(eq(inboundItems.id, inboundItemId), eq(inboundItems.workspaceId, workspaceId)));
   if (!item) throw new Error(`inbound item ${inboundItemId} is not in this workspace`);
-  const [sender] = item.fromPersonId
-    ? await db.select().from(people).where(eq(people.id, item.fromPersonId))
-    : [];
+  const [sender] = item.fromPersonId ? await db.select().from(people).where(eq(people.id, item.fromPersonId)) : [];
 
   const model = config.models.agent;
   const tools = toAnthropicTools();
@@ -53,77 +51,117 @@ export async function runPmAgent(
   const steps: Step[] = [];
   let outcome: PmOutcome | null = null;
 
-  for (let i = 0; i < MAX_STEPS && !outcome; i++) {
-    const started = Date.now();
-    const res = await llm.create({ model, max_tokens: 4096, system: PM_SYSTEM, tools, messages });
-    const step: Step = {
-      inputTokens: res.usage.input_tokens,
-      outputTokens: res.usage.output_tokens,
-      latencyMs: Date.now() - started,
-    };
-    steps.push(step);
+  try {
+    for (let i = 0; i < MAX_STEPS && !outcome; i++) {
+      const started = Date.now();
+      const res = await llm.create({
+        model,
+        max_tokens: 4096,
+        system: PM_SYSTEM,
+        tools,
+        messages,
+      });
+      const step: Step = {
+        inputTokens: res.usage.input_tokens,
+        outputTokens: res.usage.output_tokens,
+        latencyMs: Date.now() - started,
+      };
+      steps.push(step);
 
-    if (res.stop_reason === "refusal") {
-      outcome = { outcome: "needs_call", reason: "the model declined this item" };
-      break;
-    }
-    const calls = res.content.filter((b): b is Anthropic.ToolUseBlock => b.type === "tool_use");
-    if (calls.length === 0) {
-      step.text = res.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("");
-      outcome = { outcome: "handled" };
-      break;
-    }
-
-    const results: Anthropic.ToolResultBlockParam[] = [];
-    for (const call of calls) {
-      step.tool = call.name;
-      step.input = call.input;
-      if (!isToolName(call.name)) {
-        outcome = { outcome: "needs_call", reason: `unknown tool requested: ${call.name}` };
+      if (res.stop_reason === "refusal") {
+        outcome = {
+          outcome: "needs_call",
+          reason: "the model declined this item",
+        };
         break;
       }
-      const parsed = TOOLS[call.name].input.safeParse(call.input);
-      if (!parsed.success) {
-        outcome = { outcome: "needs_call", reason: `invalid input for ${call.name}` };
+      const calls = res.content.filter((b): b is Anthropic.ToolUseBlock => b.type === "tool_use");
+      if (calls.length === 0) {
+        step.text = res.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("");
+        outcome = { outcome: "handled" };
         break;
       }
-      try {
-        const result = await (TOOLS[call.name].run as (c: ToolCtx, input: unknown) => Promise<unknown>)(
-          ctx,
-          parsed.data,
-        );
-        step.result = result;
-        results.push({ type: "tool_result", tool_use_id: call.id, content: JSON.stringify(result ?? null) });
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        step.result = { error: message };
-        results.push({ type: "tool_result", tool_use_id: call.id, content: message, is_error: true });
+
+      const results: Anthropic.ToolResultBlockParam[] = [];
+      for (const call of calls) {
+        step.tool = call.name;
+        step.input = call.input;
+        if (!isToolName(call.name)) {
+          outcome = {
+            outcome: "needs_call",
+            reason: `unknown tool requested: ${call.name}`,
+          };
+          break;
+        }
+        const parsed = TOOLS[call.name].input.safeParse(call.input);
+        if (!parsed.success) {
+          outcome = {
+            outcome: "needs_call",
+            reason: `invalid input for ${call.name}`,
+          };
+          break;
+        }
+        try {
+          const result = await (TOOLS[call.name].run as (c: ToolCtx, input: unknown) => Promise<unknown>)(
+            ctx,
+            parsed.data,
+          );
+          step.result = result;
+          results.push({
+            type: "tool_result",
+            tool_use_id: call.id,
+            content: JSON.stringify(result ?? null),
+          });
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          step.result = { error: message };
+          results.push({
+            type: "tool_result",
+            tool_use_id: call.id,
+            content: message,
+            is_error: true,
+          });
+        }
+        if (call.name === "escalate") {
+          outcome = {
+            outcome: "needs_call",
+            reason: (parsed.data as { reason: string }).reason,
+          };
+          break;
+        }
       }
-      if (call.name === "escalate") {
-        outcome = { outcome: "needs_call", reason: (parsed.data as { reason: string }).reason };
+      if (!outcome) {
+        messages.push({ role: "assistant", content: res.content }, { role: "user", content: results });
       }
     }
-    if (!outcome) {
-      messages.push({ role: "assistant", content: res.content }, { role: "user", content: results });
-    }
+
+    outcome ??= { outcome: "needs_call", reason: "step limit" };
+  } finally {
+    // Written even when a call throws, so spent tokens always count toward the spend cap.
+    await recordRun(steps);
   }
-
-  outcome ??= { outcome: "needs_call", reason: "step limit" };
-
-  const inputTokens = steps.reduce((s, x) => s + x.inputTokens, 0);
-  const outputTokens = steps.reduce((s, x) => s + x.outputTokens, 0);
-  await db.insert(agentRuns).values({
-    id: `${workspaceId}:run:${randomUUID()}`,
-    workspaceId,
-    agent: "pm",
-    inboundItemId,
-    model,
-    inputTokens,
-    outputTokens,
-    costUsd: opts.replayed ? 0 : costUsd(model, { input_tokens: inputTokens, output_tokens: outputTokens }),
-    latencyMs: steps.reduce((s, x) => s + x.latencyMs, 0),
-    replayed: opts.replayed ?? false,
-    steps,
-  });
   return outcome;
+
+  async function recordRun(steps: Step[]) {
+    const inputTokens = steps.reduce((s, x) => s + x.inputTokens, 0);
+    const outputTokens = steps.reduce((s, x) => s + x.outputTokens, 0);
+    await db.insert(agentRuns).values({
+      id: `${workspaceId}:run:${randomUUID()}`,
+      workspaceId,
+      agent: "pm",
+      inboundItemId,
+      model,
+      inputTokens,
+      outputTokens,
+      costUsd: opts.replayed
+        ? 0
+        : costUsd(model, {
+            input_tokens: inputTokens,
+            output_tokens: outputTokens,
+          }),
+      latencyMs: steps.reduce((s, x) => s + x.latencyMs, 0),
+      replayed: opts.replayed ?? false,
+      steps,
+    });
+  }
 }

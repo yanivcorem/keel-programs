@@ -64,6 +64,22 @@ describe("approvals", () => {
     expect(await db.select().from(facts).where(eq(facts.type, "decision"))).toHaveLength(1);
   });
 
+  it("rejects edits other than subject and body", async () => {
+    const db = await seededDb();
+    const ctx = { db, workspaceId: "w1", inboundItemId: await addInbound(db, "w1", "w1:inbound:x") };
+    const { draftId } = (await TOOLS.draft_message.run(ctx, {
+      toPersonIds: ["w1:person:kelpforge-founder"],
+      subject: "s",
+      body: "b",
+    })) as { draftId: string };
+
+    await expect(
+      approveDraft(db, "w1", draftId, { toPersonIds: ["w1:person:dana"] } as unknown as { body: string }),
+    ).rejects.toThrow();
+    const [d] = await db.select().from(drafts).where(eq(drafts.id, draftId));
+    expect(d.state).toBe("pending");
+  });
+
   it("rejecting leaves the slots unchanged", async () => {
     const db = await seededDb();
     const { draftId } = await swapDraft(db);

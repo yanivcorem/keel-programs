@@ -1,10 +1,13 @@
 import { and, eq } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
+import { z } from "zod";
 import type { Db } from "../db/client";
 import { drafts, facts, startups } from "../db/schema";
 
 type CalendarChange = { startupId: string; fromSlot: number; toSlot: number };
 type Message = { toPersonIds: string[]; subject: string; body: string };
+
+const Edit = z.object({ subject: z.string().max(300).optional(), body: z.string().max(5000).optional() }).strict();
 
 async function requireDraft(db: Db, workspaceId: string, draftId: string) {
   const [d] = await db
@@ -23,6 +26,7 @@ export async function approveDraft(
   edited?: { subject?: string; body?: string },
 ): Promise<void> {
   const draft = await requireDraft(db, workspaceId, draftId);
+  edited = edited === undefined ? undefined : Edit.parse(edited);
 
   await db.transaction(async (tx) => {
     const payload =

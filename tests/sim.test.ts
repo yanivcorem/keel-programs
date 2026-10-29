@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { approveDraft } from "../src/agent/approvals";
 import { drafts, inboundItems, startups, workspaces } from "../src/db/schema";
 import { advanceDay, deleteStaleWorkspaces, ensureWorkspace, resetDemo } from "../src/sim/sim";
+import type { LlmClient } from "../src/llm/client";
 import { makeTestDb } from "./helpers/db";
 import { seededDb } from "./helpers/fixtures";
 
@@ -22,6 +23,18 @@ describe("simulation", () => {
     expect(items).toHaveLength(1);
     expect(items[0].state).toBe("handled");
     expect(items[0].fromPersonId).toBe("w1:person:dana");
+  });
+
+  it("live failure escalates instead of throwing", async () => {
+    const db = await seededDb();
+    const down: LlmClient = { create: async () => { throw new Error("529 overloaded"); } };
+
+    const res = await advanceDay({ db, now: NOW, pick: async () => ({ llm: down, triageLlm: down, replayed: false }) }, "w1");
+
+    expect(res).toMatchObject({ simDay: 1, added: 1 });
+    const [item] = await db.select().from(inboundItems).where(eq(inboundItems.workspaceId, "w1"));
+    expect(item.state).toBe("needs_call");
+    expect(item.reason).toBe("the model was unavailable");
   });
 
   it("advance past end is a no-op", async () => {

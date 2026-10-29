@@ -33,7 +33,7 @@ inbound item ──► triage (Haiku 5.5) ──escalate?──► Needs your ca
 - **Decision rights in the prompt and in code.** Money, intros, leaving the program, conflicts and anything unclear go to the human (`src/agent/prompts.ts`), and triage can route an item there before Ada ever runs.
 - **Approvals are idempotent.** Double-clicking Approve applies a schedule swap once (`src/agent/approvals.ts`).
 - **Every run is logged** with model, tokens, cost and latency per step (`agent_runs`), which is where the cost numbers below come from.
-- **The public demo can't run up a bill.** Each visitor gets 10 live runs an hour and the whole demo $5 a day. Past either limit, or with no API key, Ada replays a stored run for that day and the UI says so (`src/guard/`).
+- **The public demo can't run up a bill.** Each visitor gets 10 live model runs an hour (about five inbound items, since each item is a triage run plus an agent run) and the whole demo $5 a day. Past either limit, or with no API key, Ada replays a stored run for that day and the UI says so (`src/guard/`).
 
 ## Evals
 
