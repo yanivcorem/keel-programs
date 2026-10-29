@@ -186,7 +186,8 @@ export function isToolName(name: string): name is ToolName {
 
 export function toAnthropicTools(): Anthropic.Tool[] {
   return Object.entries(TOOLS).map(([name, t]) => {
-    const { $schema: _ignored, ...schema } = z.toJSONSchema(t.input) as Record<string, unknown>;
+    const schema = z.toJSONSchema(t.input) as Record<string, unknown>;
+    delete schema.$schema;
     return {
       name,
       description: t.description,
