@@ -1,0 +1,10 @@
+import { getDb } from "../../../../db/client";
+import { deleteStaleWorkspaces } from "../../../../sim/sim";
+
+export async function GET(request: Request) {
+  if (request.headers.get("authorization") !== `Bearer ${process.env.CRON_SECRET}`) {
+    return new Response("unauthorized", { status: 401 });
+  }
+  const deleted = await deleteStaleWorkspaces(await getDb());
+  return Response.json({ deleted });
+}
