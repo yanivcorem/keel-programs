@@ -11,10 +11,11 @@ import type { Triage } from "./triage";
 
 export const MAX_STEPS = 8;
 
+type ToolCall = { tool: string; input: unknown; result?: unknown };
+
 type Step = {
-  tool?: string;
-  input?: unknown;
-  result?: unknown;
+  // Every tool call the model made in this turn, in order (it can make several at once).
+  calls?: ToolCall[];
   text?: string;
   inputTokens: number;
   outputTokens: number;
@@ -83,9 +84,10 @@ export async function runPmAgent(
       }
 
       const results: Anthropic.ToolResultBlockParam[] = [];
+      step.calls = [];
       for (const call of calls) {
-        step.tool = call.name;
-        step.input = call.input;
+        const record: ToolCall = { tool: call.name, input: call.input };
+        step.calls.push(record);
         if (!isToolName(call.name)) {
           outcome = {
             outcome: "needs_call",
@@ -106,7 +108,7 @@ export async function runPmAgent(
             ctx,
             parsed.data,
           );
-          step.result = result;
+          record.result = result;
           results.push({
             type: "tool_result",
             tool_use_id: call.id,
@@ -114,7 +116,7 @@ export async function runPmAgent(
           });
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
-          step.result = { error: message };
+          record.result = { error: message };
           results.push({
             type: "tool_result",
             tool_use_id: call.id,

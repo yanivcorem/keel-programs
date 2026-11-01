@@ -6,7 +6,8 @@ import { config } from "@/lib/config";
 import { pmQueue, startupList, type QueueItem } from "@/lib/queries";
 import { currentWorkspace } from "@/lib/workspace";
 
-type Step = { tool?: string; input?: unknown; text?: string; latencyMs: number };
+// `tool` is the shape of runs recorded before a step could hold several calls.
+type Step = { calls?: { tool: string }[]; tool?: string; text?: string; latencyMs: number };
 
 const TOOL_LABELS: Record<string, string> = {
   get_startup: "Looked up the startup",
@@ -98,11 +99,12 @@ export default async function PmPage({ searchParams }: PageProps<"/pm">) {
                 {selected.runs.flatMap((run) =>
                   run.agent === "triage"
                     ? [<li key={run.id}>Sorted it ({run.model})</li>]
-                    : (run.steps as Step[]).map((s, i) => (
-                        <li key={`${run.id}-${i}`}>
-                          {s.tool ? (TOOL_LABELS[s.tool] ?? s.tool) : `Summed up: ${s.text ?? ""}`}
-                        </li>
-                      )),
+                    : (run.steps as Step[]).flatMap((s, i) => {
+                        const tools = s.calls?.map((c) => c.tool) ?? (s.tool ? [s.tool] : []);
+                        return tools.length
+                          ? tools.map((t, j) => <li key={`${run.id}-${i}-${j}`}>{TOOL_LABELS[t] ?? t}</li>)
+                          : [<li key={`${run.id}-${i}`}>Summed up: {s.text ?? ""}</li>];
+                      }),
                 )}
               </ol>
               <p className="mt-2 text-xs text-muted-foreground">

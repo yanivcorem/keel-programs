@@ -4,7 +4,9 @@ const baseURL = process.env.E2E_BASE_URL ?? "http://localhost:3100";
 
 export default defineConfig({
   testDir: "./e2e",
-  timeout: 60_000,
+  // Against a deployment with an API key Ada runs live (about 10 s per item), so waits are longer there.
+  timeout: process.env.E2E_BASE_URL ? 180_000 : 60_000,
+  expect: { timeout: process.env.E2E_BASE_URL ? 45_000 : 5_000 },
   use: { baseURL },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: process.env.E2E_BASE_URL

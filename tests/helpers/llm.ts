@@ -30,3 +30,16 @@ export function text(t: string, model = "claude-sonnet-5-5"): Anthropic.Message 
 }
 
 export const triageReply = (t: object) => text(JSON.stringify(t), "claude-haiku-5-5");
+
+export function toolUses(calls: [string, unknown][], model = "claude-sonnet-5-5"): Anthropic.Message {
+  n += 1;
+  return {
+    id: `msg_${n}`,
+    type: "message",
+    role: "assistant",
+    model,
+    content: calls.map(([name, input], i) => ({ type: "tool_use", id: `toolu_${n}_${i}`, name, input })),
+    stop_reason: "tool_use",
+    usage,
+  } as unknown as Anthropic.Message;
+}

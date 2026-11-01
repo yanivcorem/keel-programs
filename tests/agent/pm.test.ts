@@ -5,7 +5,7 @@ import type { Db } from "../../src/db/client";
 import { agentRuns, drafts, facts, inboundItems, startups } from "../../src/db/schema";
 import { scriptedClient } from "../../src/llm/scripted";
 import { addInbound, seededDb } from "../helpers/fixtures";
-import { text, toolUse, triageReply } from "../helpers/llm";
+import { text, toolUse, toolUses, triageReply } from "../helpers/llm";
 
 const KELP = "w1:startup:kelpforge";
 const SOIL = "w1:startup:soilmind";
@@ -16,6 +16,31 @@ async function item(db: Db, id: string) {
 }
 
 describe("handleInbound", () => {
+  it("records every tool call when Ada makes several in one turn", async () => {
+    const db = await seededDb();
+    const id = await addInbound(db, "w1", "w1:inbound:multi", "co-founder tension again");
+    const triageLlm = scriptedClient([
+      triageReply({ category: "mentor_feedback", startupId: KELP, escalate: false, reason: "tension" }),
+    ]);
+    const llm = scriptedClient([
+      toolUses([
+        ["set_risk", { startupId: KELP, riskLevel: 2, reason: "tension" }],
+        ["log_fact", { type: "risk_flag", startupId: KELP, data: { note: "tension" } }],
+        ["draft_message", { toPersonIds: ["w1:person:kelpforge-founder"], subject: "Check-in", body: "Hi Priya" }],
+      ]),
+      text("Done."),
+    ]);
+
+    await handleInbound({ db, llm, triageLlm }, "w1", id);
+
+    const [run] = await db
+      .select()
+      .from(agentRuns)
+      .where(and(eq(agentRuns.inboundItemId, id), eq(agentRuns.agent, "pm")));
+    const first = (run.steps as { calls: { tool: string }[] }[])[0];
+    expect(first.calls.map((c) => c.tool)).toEqual(["set_risk", "log_fact", "draft_message"]);
+  });
+
   it("moment 1: mentor notes raise Kelpforge's risk and draft a check-in", async () => {
     const db = await seededDb();
     const id = await addInbound(db, "w1", "w1:inbound:1", "co-founder tension again");

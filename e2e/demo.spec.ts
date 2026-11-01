@@ -13,7 +13,8 @@ test("a visitor runs moment 1, approves Ada's draft, and resets the demo", async
 
   await nav.getByRole("link", { name: /AI Program Manager/ }).click();
   await page.getByTestId("queue-item").filter({ hasText: "Kelpforge" }).click();
-  await expect(page.getByText("Replaying a recorded run")).toBeVisible();
+  // Locally the server has no API key, so Ada replays the recording; a live deployment runs her for real.
+  if (!process.env.E2E_BASE_URL) await expect(page.getByText("Replaying a recorded run")).toBeVisible();
   await expect(page.getByTestId("agent-steps")).toContainText("Updated the risk level");
 
   await page.getByRole("button", { name: "Approve (mark sent)" }).click();
