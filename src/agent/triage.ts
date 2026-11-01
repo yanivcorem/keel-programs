@@ -39,7 +39,10 @@ export async function triage(llm: LlmClient, ctx: ToolCtx, opts: { replayed?: bo
   if (!item) throw new Error(`inbound item ${inboundItemId} is not in this workspace`);
 
   const [sender] = item.fromPersonId
-    ? await db.select().from(people).where(eq(people.id, item.fromPersonId))
+    ? await db
+        .select()
+        .from(people)
+        .where(and(eq(people.id, item.fromPersonId), eq(people.workspaceId, workspaceId)))
     : [];
   const cohort = await db
     .select({ id: startups.id, name: startups.name })
@@ -57,7 +60,7 @@ export async function triage(llm: LlmClient, ctx: ToolCtx, opts: { replayed?: bo
         role: "user",
         content:
           `Startups: ${JSON.stringify(cohort)}\n\n` +
-          `From: ${sender ? `${sender.name} (${sender.role})` : "unknown"}\n` +
+          `From: ${sender ? `${sender.name} (${[sender.role, sender.startupId].filter(Boolean).join(", ")})` : "unknown"}\n` +
           `Subject: ${item.subject}\n\n${item.body}`,
       },
     ],
