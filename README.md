@@ -4,7 +4,7 @@
 
 This is a working demo on invented data: **Northwind Climate Accelerator**, cohort 2, week 5 of 10, with 10 made-up climate startups, 8 mentors and 6 investors.
 
-**Live demo:** _link goes here after deploy_
+**Live demo:** https://keel-programs.vercel.app (no login; each visitor gets their own copy of the program)
 
 ## The two-minute demo
 
@@ -67,7 +67,7 @@ Latest run (Nov 1, 2026, `claude-haiku-5-5` for triage, `claude-sonnet-5-5` for 
 
 ## How it was built
 
-Keel grew out of an AI program manager I run for a real startup program, built and operated with Claude Code. This repo rebuilds that agent's core as a standalone product on invented data, test-first: each feature started as a failing test (`npm test`, 50+ tests, plus a Playwright run of the demo script).
+Keel grew out of an AI program manager I run for a real startup program, built and operated with Claude Code. This repo rebuilds that agent's core as a standalone product on invented data, test-first: each feature started as a failing test (`npm test`, 55 tests, plus a Playwright run of the demo script).
 
 ## Run it locally
 
