@@ -22,7 +22,8 @@ test("a visitor runs moment 1, approves Ada's draft, and resets the demo", async
   await expect(nav.getByTestId("pm-badge")).toHaveCount(0);
 
   await page.getByRole("button", { name: "Advance to next day" }).click();
-  await expect(nav.getByTestId("pm-badge")).toHaveText("2");
+  // Live, how many drafts Ada writes for the slot swap varies; the recording writes two.
+  await expect(nav.getByTestId("pm-badge")).toHaveText(process.env.E2E_BASE_URL ? /^[1-9]$/ : "2");
 
   await page.getByRole("button", { name: "Reset demo" }).click();
   await expect(page.getByText("Demo day 0 of 4")).toBeVisible();
