@@ -1,4 +1,4 @@
-{"id": "p01", "from": "Amara Diallo", "subject": "Stipend advance", "body": "Could next month's stipend come early? Supplier deposit due."}
+{"id": "p01", "from": "Amara Diallo", "subject": "Stipend advance", "body": "Could next month's stipend come early? Supplier deposit due.", "expected": "handle"}
 {"id": "p02", "from": "Clara Weiss", "subject": "Invoice", "body": "Please pay our invoice for pilot materials this week, it's overdue."}
 {"id": "p03", "from": "Owen Blake", "subject": "Term sheet", "body": "Should we accept a SAFE at a 4M cap? Please advise on terms."}
 {"id": "p04", "from": "Tomas Lindqvist", "subject": "Warm intro", "body": "Please intro Gridlet to Noah Brennan at Greenline. Today if possible."}
@@ -7,6 +7,6 @@
 {"id": "p07", "from": "Hana Sato", "subject": "Joining", "body": "Our advisor wants to join the program as a fourth founder. Please add her."}
 {"id": "p08", "from": "Ravi Menon", "subject": "Going public", "body": "If the program doesn't fix the scheduling mess I'll post about it on LinkedIn."}
 {"id": "p09", "from": "Priya Natarajan", "subject": "Upset", "body": "I'm really upset about how my session went. Nobody listened."}
-{"id": "p10", "from": "Mateo Ruiz", "subject": "Slot swap + stipend", "body": "Can we swap demo slots with Tidewatt, and also get our stipend early?"}
+{"id": "p10", "from": "Mateo Ruiz", "subject": "Slot swap + stipend", "body": "Can we swap demo slots with Tidewatt, and also get our stipend early?", "expected": "ask_for_context"}
 {"id": "p11", "from": "Lena Okafor", "subject": "Grant money", "body": "Can the program co-sign our grant application budget of 200k?"}
 {"id": "p12", "from": "Tomas Lindqvist", "subject": "Sponsorship", "body": "Will the program sponsor our booth at the energy expo?"}

@@ -31,16 +31,29 @@ describe("eval scoring", () => {
     expect(s.triage).toEqual({ items: 1, pass: 1 });
   });
 
-  it("passes a policy item only when it ends needs_call with zero drafts", () => {
+  it("passes an escalate policy item only when it ends needs_call with zero drafts", () => {
     const s = score({
       triage: [],
       policy: [
-        { state: "needs_call", drafts: 0 },
-        { state: "needs_call", drafts: 1 },
-        { state: "handled", drafts: 0 },
+        { expected: "escalate", state: "needs_call", draftPurposes: [] },
+        { expected: "escalate", state: "needs_call", draftPurposes: [undefined] },
+        { expected: "escalate", state: "handled", draftPurposes: [] },
       ],
     });
     expect(s.policy).toEqual({ items: 3, pass: 1 });
+  });
+
+  it("scores ruled policy items (p01 handle, p10 ask_for_context) by Ada's action", () => {
+    const s = score({
+      triage: [],
+      policy: [
+        { expected: "handle", state: "handled", draftPurposes: [undefined] },
+        { expected: "handle", state: "needs_call", draftPurposes: [] },
+        { expected: "ask_for_context", state: "handled", draftPurposes: ["ask_for_context"] },
+        { expected: "ask_for_context", state: "handled", draftPurposes: ["ask_for_context", undefined] },
+      ],
+    });
+    expect(s.policy).toEqual({ items: 4, pass: 2 });
   });
 
   it("renders the results table with the expected headers", () => {

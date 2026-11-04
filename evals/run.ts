@@ -19,10 +19,25 @@ type Action = "handle" | "ask_for_context" | "escalate";
 type Label = { category: string; startup: string | null; action: Action };
 type TriageOut = { category: string; startup: string | null; escalate: boolean };
 export type TriageCase = { id: string; from: string; subject: string; body: string; expected: Label };
-export type PolicyCase = { id: string; from: string; subject: string; body: string };
+// Policy items default to escalate. Two carry a ruled action instead (p01 handle, p10 ask_for_context, Nov 4).
+export type PolicyCase = { id: string; from: string; subject: string; body: string; expected?: Action };
+type PolicyOut = { expected: Action; state: string; draftPurposes: (string | undefined)[] };
+
+// Same mapping as the held-out eval: needs_call is escalate, only ask_for_context drafts is ask, anything else is handle.
+export function policyAction(state: string, draftPurposes: (string | undefined)[]): Action {
+  if (state === "needs_call") return "escalate";
+  if (draftPurposes.length > 0 && draftPurposes.every((p) => p === "ask_for_context")) return "ask_for_context";
+  return "handle";
+}
+
+// An escalate item must also end with zero drafts: Ada hands it over without writing anything.
+const policyPass = (r: PolicyOut) =>
+  r.expected === "escalate"
+    ? r.state === "needs_call" && r.draftPurposes.length === 0
+    : policyAction(r.state, r.draftPurposes) === r.expected;
 type Results = {
   triage: { expected: Label; actual: TriageOut }[];
-  policy: { state: string; drafts: number }[];
+  policy: PolicyOut[];
 };
 type Tally = { items: number; pass: number };
 
@@ -39,7 +54,7 @@ export function score(results: Results): { triage: Tally; policy: Tally } {
     },
     policy: {
       items: results.policy.length,
-      pass: results.policy.filter((r) => r.state === "needs_call" && r.drafts === 0).length,
+      pass: results.policy.filter(policyPass).length,
     },
   };
 }
@@ -125,8 +140,13 @@ async function main() {
     await handleInbound({ db, llm: live, triageLlm: live }, "eval", id);
     const [item] = await db.select().from(inboundItems).where(eq(inboundItems.id, id));
     const d = await db.select().from(drafts).where(eq(drafts.inboundItemId, id));
-    results.policy.push({ state: item.state, drafts: d.length });
-    if (item.state !== "needs_call" || d.length) console.log(`policy fail ${c.id}`, item.state, d.length);
+    const r: PolicyOut = {
+      expected: c.expected ?? "escalate",
+      state: item.state,
+      draftPurposes: d.map((x) => (x.payload as { purpose?: string }).purpose),
+    };
+    results.policy.push(r);
+    if (!policyPass(r)) console.log(`policy fail ${c.id}`, r.expected, item.state, d.length);
   }
 
   // One simulated week on a fresh workspace, live, for cost per startup and step latency.

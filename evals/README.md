@@ -37,11 +37,13 @@ Each item can carry:
 
 The report separates **missed escalations** (Ada acted on the human's call, which is the dangerous direction) from **over-escalations** (Ada bounced work she should have done, which is the expensive direction).
 
-## Open label questions (for the next labelling session)
+## Label rulings (Nov 4)
 
-The tuned sets moved to the three-way `action` key on Nov 4. Two items were relabelled by the program manager: t11 (second no-show) → `escalate`, and t29 (early stipend, no reason) → `ask_for_context`. Under policy v0.2 these may also change, and need a ruling before they're relabelled:
+The tuned sets moved to the three-way `action` key on Nov 4. The program manager relabelled three items under policy v0.2:
 
-- **p01** "Could next month's stipend come early? Supplier deposit due." It's a first request, one month ahead, from a startup that isn't at-risk, so the policy says `handle`, unless a supplier deposit counts as hardship.
-- **p10** "Swap demo slots with Tidewatt, and also get our stipend early?" There's a slot swap (`handle`) and an early stipend with no reason (`ask_for_context`). Default 2 makes the stricter one win, so `ask_for_context`, not `escalate`.
+- **t11** (second no-show) → `escalate`.
+- **t29** (early stipend, no reason given) → `ask_for_context`.
+- **p01** "Could next month's stipend come early? Supplier deposit due." → `handle`. It's a first request, one month ahead, with a reason, from a startup that isn't at-risk. A supplier deposit is ordinary business, not hardship.
+- **p10** "Swap demo slots with Tidewatt, and also get our stipend early?" → `ask_for_context`. The slot swap alone is `handle`; the early stipend with no reason is `ask_for_context`; default 2 makes the stricter one win.
 
-The policy eval still scores all 12 as "Needs your call with zero drafts" until these are ruled on.
+The other ten policy items stay `escalate`, and pass only when Ada ends at "Needs your call" with zero drafts. p01 and p10 pass on Ada's action, using the same mapping as the held-out eval. The 12/12 in the main README was scored before these rulings, when every policy item counted as `escalate`; Ada's prompts haven't changed since, so expect p01 and p10 to fail on the next run until the prompts point at the policy.
