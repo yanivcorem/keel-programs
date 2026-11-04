@@ -6,11 +6,19 @@ import { runPmAgent } from "./pm";
 import { TOOLS, type ToolCtx } from "./tools";
 import { triage } from "./triage";
 
-export type HandleDeps = { db: Db; llm: LlmClient; triageLlm: LlmClient; replayed?: boolean };
+export type HandleDeps = {
+  db: Db;
+  llm: LlmClient;
+  triageLlm: LlmClient;
+  replayed?: boolean;
+  // Program records relevant to this item (session details, the perks page, RSVPs). Today only the
+  // held-out eval passes these; a knowledge-base lookup will supply them in the product later.
+  programInfo?: string;
+};
 
 export async function handleInbound(deps: HandleDeps, workspaceId: string, inboundItemId: string): Promise<void> {
   const ctx: ToolCtx = { db: deps.db, workspaceId, inboundItemId };
-  const opts = { replayed: deps.replayed };
+  const opts = { replayed: deps.replayed, programInfo: deps.programInfo };
   const where = and(eq(inboundItems.id, inboundItemId), eq(inboundItems.workspaceId, workspaceId));
 
   const t = await triage(deps.triageLlm, ctx, opts);

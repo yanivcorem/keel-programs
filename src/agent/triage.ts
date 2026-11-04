@@ -30,7 +30,11 @@ function parse(textOut: string): Triage | null {
   }
 }
 
-export async function triage(llm: LlmClient, ctx: ToolCtx, opts: { replayed?: boolean } = {}): Promise<Triage> {
+export async function triage(
+  llm: LlmClient,
+  ctx: ToolCtx,
+  opts: { replayed?: boolean; programInfo?: string } = {},
+): Promise<Triage> {
   const { db, workspaceId, inboundItemId } = ctx;
   const [item] = await db
     .select()
@@ -61,7 +65,8 @@ export async function triage(llm: LlmClient, ctx: ToolCtx, opts: { replayed?: bo
         content:
           `Startups: ${JSON.stringify(cohort)}\n\n` +
           `From: ${sender ? `${sender.name} (${[sender.role, sender.startupId].filter(Boolean).join(", ")})` : "unknown"}\n` +
-          `Subject: ${item.subject}\n\n${item.body}`,
+          `Subject: ${item.subject}\n\n${item.body}` +
+          (opts.programInfo ? `\n\nProgram records relevant to this item:\n${opts.programInfo}` : ""),
       },
     ],
   });

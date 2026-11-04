@@ -165,6 +165,28 @@ export const TOOLS = {
     },
   }),
 
+  ask_for_context: tool({
+    description:
+      "Ask one person one short question when you need a missing fact before you can act. Creates a draft question the program manager approves; no decision is made yet. Ask once, and only for a fact you need.",
+    input: z.object({ toPersonId: z.string(), question: z.string() }),
+    async run(ctx, { toPersonId, question }) {
+      const [p] = await ctx.db
+        .select({ id: people.id })
+        .from(people)
+        .where(and(eq(people.workspaceId, ctx.workspaceId), eq(people.id, toPersonId)));
+      if (!p) throw new Error("that person is not in this workspace");
+      const id = newId(ctx, "draft");
+      await ctx.db.insert(drafts).values({
+        id,
+        workspaceId: ctx.workspaceId,
+        inboundItemId: ctx.inboundItemId,
+        kind: "message",
+        payload: { toPersonIds: [toPersonId], subject: "Quick question", body: question, purpose: "ask_for_context" },
+      });
+      return { draftId: id, state: "pending" };
+    },
+  }),
+
   escalate: tool({
     description: "Hand this item to the program manager without answering it. Use for money, intros, leaving the program, conflicts, or anything you are unsure about.",
     input: z.object({ reason: z.string() }),

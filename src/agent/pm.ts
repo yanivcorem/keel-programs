@@ -28,7 +28,7 @@ export async function runPmAgent(
   llm: LlmClient,
   ctx: ToolCtx,
   triage: Triage,
-  opts: { replayed?: boolean } = {},
+  opts: { replayed?: boolean; programInfo?: string } = {},
 ): Promise<PmOutcome> {
   const { db, workspaceId, inboundItemId } = ctx;
   const [item] = await db
@@ -46,7 +46,8 @@ export async function runPmAgent(
       content:
         `New ${item.kind} from ${sender ? `${sender.name} (${sender.role}, id ${sender.id})` : "unknown sender"}.\n` +
         `Subject: ${item.subject}\n\n${item.body}\n\n` +
-        `Triage: ${JSON.stringify(triage)}`,
+        `Triage: ${JSON.stringify(triage)}` +
+        (opts.programInfo ? `\n\nProgram records relevant to this item:\n${opts.programInfo}` : ""),
     },
   ];
   const steps: Step[] = [];

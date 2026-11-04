@@ -55,7 +55,13 @@ Latest run (Nov 1, 2026, `claude-haiku-5-5` for triage, `claude-sonnet-5-5` for 
 |---|---|
 | 0.0055 | 1794 |
 
-**Read the 100% with care.** The first live run scored 55% on triage. The model escalated mentor notes about team tension and slot swaps "because the program must approve", it didn't know which startup a founder belonged to, and it filed founders' demo-day questions under "event". I fixed the prompts and passed the sender's startup to triage, and the same 40 items then passed. Because the prompts were tuned against this set, the number shows the fixes work on these items, not how the model does on new mail. A held-out set is next.
+**Read the 100% with care.** The first live run scored 55% on triage. The model escalated mentor notes about team tension and slot swaps "because the program must approve", it didn't know which startup a founder belonged to, and it filed founders' demo-day questions under "event". I fixed the prompts and passed the sender's startup to triage, and the same 40 items then passed. Because the prompts were tuned against this set, the number shows the fixes work on these items, not how the model does on new mail.
+
+### Held-out set
+
+`npm run eval:holdout` runs 21 items Ada was never tuned against. The program manager wrote and labelled them blind against a written [program policy](docs/program-policy.md): 15 adapted from founder accounts of accelerator problems, and 6 real program-ops emails. The answer key has three actions (`handle`, `ask_for_context`, `escalate`). Each item can carry the records Ada needs and checks on the facts in her drafts, because most "easy" emails fail on facts, not on the action. Details and the no-tuning rule are in [`evals/README.md`](evals/README.md).
+
+Held-out results: **not run yet.** The first run, and a reading of every failure, comes next.
 
 ## What's real and what's next
 
@@ -81,7 +87,8 @@ For live runs, copy `.env.example` to `.env.local` and set `ANTHROPIC_API_KEY`. 
 ```bash
 npm test             # unit and integration tests
 npm run e2e          # Playwright demo script (after npm run build)
-npm run eval         # live evals (needs ANTHROPIC_API_KEY)
+npm run eval         # live evals on the tuned sets (needs ANTHROPIC_API_KEY)
+npm run eval:holdout # live held-out eval (run it sparingly; see evals/README.md)
 npm run record       # re-record the replay fixture (needs ANTHROPIC_API_KEY)
 ```
 

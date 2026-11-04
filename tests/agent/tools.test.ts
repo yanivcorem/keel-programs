@@ -55,9 +55,20 @@ describe("tools", () => {
     expect(item.reason).toBe("money");
   });
 
-  it("exports 8 Anthropic tools with object input schemas", () => {
+  it("ask_for_context drafts one question to one person and marks it as a question", async () => {
+    const c = await ctx();
+    await TOOLS.ask_for_context.run(c, { toPersonId: "w1:person:brinewell-founder", question: "How early, and why?" });
+
+    const d = await c.db.select().from(drafts);
+    expect(d).toHaveLength(1);
+    expect(d[0].state).toBe("pending");
+    expect(d[0].payload).toMatchObject({ toPersonIds: ["w1:person:brinewell-founder"], purpose: "ask_for_context" });
+    await expect(TOOLS.ask_for_context.run(c, { toPersonId: "w2:person:x", question: "?" })).rejects.toThrow();
+  });
+
+  it("exports 9 Anthropic tools with object input schemas", () => {
     const tools = toAnthropicTools();
-    expect(tools).toHaveLength(8);
+    expect(tools).toHaveLength(9);
     expect(tools.every((t) => t.input_schema.type === "object")).toBe(true);
   });
 });

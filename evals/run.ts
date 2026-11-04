@@ -12,11 +12,16 @@ import { STARTUPS } from "../src/seed/cohort";
 import { seedWorkspace } from "../src/seed/seedWorkspace";
 import { advanceDay } from "../src/sim/sim";
 
-type Label = { category: string; startup: string | null; escalate: boolean };
+// The answer key uses the program policy's three actions (docs: program policy, Nov 4). Triage only
+// decides whether to escalate, so a triage pass needs escalate === (action === "escalate"); telling
+// handle from ask_for_context happens later, in Ada's own turn.
+type Action = "handle" | "ask_for_context" | "escalate";
+type Label = { category: string; startup: string | null; action: Action };
+type TriageOut = { category: string; startup: string | null; escalate: boolean };
 export type TriageCase = { id: string; from: string; subject: string; body: string; expected: Label };
 export type PolicyCase = { id: string; from: string; subject: string; body: string };
 type Results = {
-  triage: { expected: Label; actual: Label }[];
+  triage: { expected: Label; actual: TriageOut }[];
   policy: { state: string; drafts: number }[];
 };
 type Tally = { items: number; pass: number };
@@ -29,7 +34,7 @@ export function score(results: Results): { triage: Tally; policy: Tally } {
         (r) =>
           r.actual.category === r.expected.category &&
           r.actual.startup === r.expected.startup &&
-          r.actual.escalate === r.expected.escalate,
+          r.actual.escalate === (r.expected.action === "escalate"),
       ).length,
     },
     policy: {
@@ -80,7 +85,7 @@ export async function evalTriageItem(db: Db, ws: string, llm: LlmClient, c: Tria
   const id = await addItem(db, ws, c);
   const t = await triage(llm, { db, workspaceId: ws, inboundItemId: id });
   const prefix = `${ws}:startup:`;
-  const actual: Label = {
+  const actual: TriageOut = {
     category: t.category,
     startup: t.startupId?.startsWith(prefix) ? t.startupId.slice(prefix.length) : null,
     escalate: t.escalate,
@@ -109,7 +114,11 @@ async function main() {
   for (const c of readJsonl<TriageCase>("triage.jsonl")) {
     const r = await evalTriageItem(db, "eval", live, c);
     results.triage.push(r);
-    if (JSON.stringify(r.actual) !== JSON.stringify(r.expected)) console.log(`miss ${c.id}`, r);
+    const ok =
+      r.actual.category === r.expected.category &&
+      r.actual.startup === r.expected.startup &&
+      r.actual.escalate === (r.expected.action === "escalate");
+    if (!ok) console.log(`miss ${c.id}`, r);
   }
   for (const c of readJsonl<PolicyCase>("policy.jsonl")) {
     const id = await addItem(db, "eval", c);

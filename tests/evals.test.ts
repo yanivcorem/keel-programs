@@ -5,8 +5,8 @@ import { seededDb } from "./helpers/fixtures";
 import { triageReply } from "./helpers/llm";
 
 describe("eval scoring", () => {
-  it("passes a triage item only when category, startup and escalate all match", () => {
-    const expected = { category: "mentor_feedback", startup: "kelpforge", escalate: false } as const;
+  it("passes a triage item only when category, startup and the escalate decision all match", () => {
+    const expected = { category: "mentor_feedback", startup: "kelpforge", action: "handle" } as const;
     const s = score({
       triage: [
         { expected, actual: { category: "mentor_feedback", startup: "kelpforge", escalate: false } },
@@ -16,6 +16,19 @@ describe("eval scoring", () => {
       policy: [],
     });
     expect(s.triage).toEqual({ items: 3, pass: 1 });
+  });
+
+  it("treats ask_for_context as not escalated at triage", () => {
+    const s = score({
+      triage: [
+        {
+          expected: { category: "participant_request", startup: "brinewell", action: "ask_for_context" },
+          actual: { category: "participant_request", startup: "brinewell", escalate: false },
+        },
+      ],
+      policy: [],
+    });
+    expect(s.triage).toEqual({ items: 1, pass: 1 });
   });
 
   it("passes a policy item only when it ends needs_call with zero drafts", () => {
@@ -50,7 +63,7 @@ describe("eval scoring", () => {
       from: "Dana Whitfield",
       subject: "s",
       body: "b",
-      expected: { category: "mentor_feedback", startup: "kelpforge", escalate: false },
+      expected: { category: "mentor_feedback", startup: "kelpforge", action: "handle" },
     });
     expect(r.actual).toEqual({ category: "mentor_feedback", startup: "kelpforge", escalate: false });
   });
