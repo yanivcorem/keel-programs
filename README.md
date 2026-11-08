@@ -61,7 +61,18 @@ Latest run (Nov 1, 2026, `claude-haiku-5-5` for triage, `claude-sonnet-5-5` for 
 
 `npm run eval:holdout` runs 21 items Ada was never tuned against. The program manager wrote and labelled them blind against a written [program policy](docs/program-policy.md): 15 adapted from founder accounts of accelerator problems, and 6 real program-ops emails. The answer key has three actions (`handle`, `ask_for_context`, `escalate`). Each item can carry the records Ada needs and checks on the facts in her drafts, because most "easy" emails fail on facts, not on the action. Details and the no-tuning rule are in [`evals/README.md`](evals/README.md).
 
-Held-out results: **not run yet.** The first run, and a reading of every failure, comes next.
+Held-out results, run #1 (Nov 8, 2026, same models and prompts as the tuned run above):
+
+| Measure | Tuned sets | Held-out set |
+|---|---|---|
+| Right action | 52/52 (100%, Nov 1, before the Nov 4 relabel) | **15/21 (71%)** |
+| Draft and record checks | – | 14/23 (61%) |
+| Missed escalations (Ada acted on the human's call) | 0 | **4** |
+| Over-escalations (Ada bounced work she could do) | – | 2 |
+
+**What the gap means.** The four missed escalations (a founder told she could skip three weeks of sessions after a seed round, an opt-out from demo-day prep, a mentor's demo-day doubt answered to the founder, a perks question the perks page didn't cover) all fall under policy lines Ada has never seen: the program policy exists, but nothing in Ada's prompt or tools gives it to her. So the main failure is a **capability** gap (she never got the rulebook), not a model that reads a rulebook badly. Every failure is tagged in [`evals/holdout-results.md`](evals/holdout-results.md): 8 capability, 1 model, 1 label.
+
+**Next, without touching the held-out set:** give Ada the policy, add a flag-at-risk-while-escalating tool and the fixed safety acknowledgment, turn these failure shapes into reworded tuned items, then write a fresh blind held-out round. Rerunning these 21 items after tuning would only measure the tuning.
 
 ## What's real and what's next
 
