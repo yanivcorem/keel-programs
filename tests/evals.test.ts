@@ -43,6 +43,19 @@ describe("eval scoring", () => {
     expect(s.policy).toEqual({ items: 3, pass: 1 });
   });
 
+  it("a sent safety acknowledgment doesn't break an escalate; missing flag or ack fails the item", () => {
+    const s = score({
+      triage: [],
+      policy: [
+        { expected: "escalate", state: "needs_call", draftPurposes: ["safety_ack"], ackOk: true },
+        { expected: "escalate", state: "needs_call", draftPurposes: [], ackOk: false },
+        { expected: "escalate", state: "needs_call", draftPurposes: [], flagOk: false },
+        { expected: "handle", state: "handled", draftPurposes: [undefined], flagOk: true },
+      ],
+    });
+    expect(s.policy).toEqual({ items: 4, pass: 2 });
+  });
+
   it("scores ruled policy items (p01 handle, p10 ask_for_context) by Ada's action", () => {
     const s = score({
       triage: [],

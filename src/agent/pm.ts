@@ -5,8 +5,8 @@ import { agentRuns, inboundItems, people } from "../db/schema";
 import { config } from "../lib/config";
 import type { LlmClient } from "../llm/client";
 import { costUsd } from "../llm/pricing";
-import { PM_SYSTEM } from "./prompts";
-import { isToolName, toAnthropicTools, TOOLS, type ToolCtx } from "./tools";
+import { PM_ESCALATION_SYSTEM, PM_SYSTEM } from "./prompts";
+import { ESCALATION_TOOLS, isToolName, toAnthropicTools, TOOLS, type ToolCtx, type ToolName } from "./tools";
 import type { Triage } from "./triage";
 
 export const MAX_STEPS = 8;
@@ -28,8 +28,12 @@ export async function runPmAgent(
   llm: LlmClient,
   ctx: ToolCtx,
   triage: Triage,
-  opts: { replayed?: boolean; programInfo?: string } = {},
+  // "escalation": triage already routed the item to the human. Ada keeps records and may send the
+  // safety acknowledgment, but can't draft, and the item ends in "Needs your call" whatever she does.
+  opts: { replayed?: boolean; programInfo?: string; mode?: "normal" | "escalation" } = {},
 ): Promise<PmOutcome> {
+  const escalationMode = opts.mode === "escalation";
+  const allowed: ToolName[] | undefined = escalationMode ? ESCALATION_TOOLS : undefined;
   const { db, workspaceId, inboundItemId } = ctx;
   const [item] = await db
     .select()
@@ -39,7 +43,11 @@ export async function runPmAgent(
   const [sender] = item.fromPersonId ? await db.select().from(people).where(eq(people.id, item.fromPersonId)) : [];
 
   const model = config.models.agent;
-  const tools = toAnthropicTools();
+  const tools = toAnthropicTools(allowed);
+  // The policy makes the system prompt long and identical on every call, so cache it.
+  const system: Anthropic.TextBlockParam[] = [
+    { type: "text", text: escalationMode ? PM_ESCALATION_SYSTEM : PM_SYSTEM, cache_control: { type: "ephemeral" } },
+  ];
   const messages: Anthropic.MessageParam[] = [
     {
       role: "user",
@@ -59,7 +67,7 @@ export async function runPmAgent(
       const res = await llm.create({
         model,
         max_tokens: 4096,
-        system: PM_SYSTEM,
+        system,
         tools,
         messages,
       });
@@ -89,7 +97,7 @@ export async function runPmAgent(
       for (const call of calls) {
         const record: ToolCall = { tool: call.name, input: call.input };
         step.calls.push(record);
-        if (!isToolName(call.name)) {
+        if (!isToolName(call.name) || (allowed && !allowed.includes(call.name))) {
           outcome = {
             outcome: "needs_call",
             reason: `unknown tool requested: ${call.name}`,
@@ -139,6 +147,10 @@ export async function runPmAgent(
     }
 
     outcome ??= { outcome: "needs_call", reason: "step limit" };
+    if (escalationMode && outcome.outcome === "handled") {
+      // She finished without calling escalate; the item still goes to the human, with triage's reason.
+      outcome = { outcome: "needs_call", reason: triage.reason };
+    }
   } finally {
     // Written even when a call throws, so spent tokens always count toward the spend cap.
     await recordRun(steps);

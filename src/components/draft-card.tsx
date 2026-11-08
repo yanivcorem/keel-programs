@@ -10,7 +10,7 @@ import { editFor } from "@/lib/drafts";
 type Draft = {
   id: string;
   kind: "message" | "calendar_change";
-  state: "pending" | "approved" | "rejected";
+  state: "pending" | "approved" | "rejected" | "sent";
   payload: unknown;
   to: string[];
 };
@@ -28,8 +28,19 @@ export function DraftCard({ draft, startupNames }: { draft: Draft; startupNames:
         <p className="text-sm font-medium">
           {draft.kind === "message" ? `Message to ${draft.to.join(", ")}` : "Demo day schedule change"}
         </p>
-        <Badge variant={draft.state === "pending" ? "outline" : draft.state === "approved" ? "secondary" : "destructive"}>
-          {draft.state === "pending" ? "Waiting for you" : draft.state === "approved" ? "Approved" : "Rejected"}
+        <Badge
+          variant={
+            draft.state === "pending" ? "outline" : draft.state === "rejected" ? "destructive" : "secondary"
+          }
+        >
+          {
+            {
+              pending: "Waiting for you",
+              approved: "Approved",
+              rejected: "Rejected",
+              sent: "Sent automatically (fixed safety reply)",
+            }[draft.state]
+          }
         </Badge>
       </div>
 

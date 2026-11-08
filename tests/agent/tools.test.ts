@@ -66,9 +66,9 @@ describe("tools", () => {
     await expect(TOOLS.ask_for_context.run(c, { toPersonId: "w2:person:x", question: "?" })).rejects.toThrow();
   });
 
-  it("exports 9 Anthropic tools with object input schemas", () => {
+  it("exports 12 Anthropic tools with object input schemas", () => {
     const tools = toAnthropicTools();
-    expect(tools).toHaveLength(9);
+    expect(tools).toHaveLength(12);
     expect(tools.every((t) => t.input_schema.type === "object")).toBe(true);
   });
 });

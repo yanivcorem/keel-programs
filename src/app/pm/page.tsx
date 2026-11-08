@@ -14,9 +14,13 @@ const TOOL_LABELS: Record<string, string> = {
   list_sessions: "Read past mentor sessions",
   set_risk: "Updated the risk level",
   log_fact: "Logged a fact for the report",
+  get_pm_availability: "Checked the program manager's calendar",
+  get_stipend_history: "Checked the stipend record",
   get_demo_day_schedule: "Checked the demo day schedule",
   draft_message: "Drafted a message",
   draft_calendar_change: "Drafted a schedule change",
+  ask_for_context: "Drafted a question for missing facts",
+  send_safety_ack: "Sent the fixed safety reply",
   escalate: "Handed it to you",
 };
 
@@ -88,7 +92,9 @@ export default async function PmPage({ searchParams }: PageProps<"/pm">) {
 
             {selected.state === "needs_call" ? (
               <div className="rounded-lg border border-[var(--signal)]/40 bg-[var(--signal)]/5 p-3 text-sm">
-                <p className="font-medium">{config.agentName} handed this to you</p>
+                <p className="font-medium">
+                  {config.agentName} handed this to you{selected.urgent ? " · urgent" : ""}
+                </p>
                 <p>{selected.reason}</p>
               </div>
             ) : null}
@@ -115,7 +121,7 @@ export default async function PmPage({ searchParams }: PageProps<"/pm">) {
 
             {selected.drafts.length ? (
               <div className="flex flex-col gap-3">
-                <h3 className="text-sm font-semibold">Drafts for your approval</h3>
+                <h3 className="text-sm font-semibold">Drafts</h3>
                 {selected.drafts.map((d) => (
                   <DraftCard key={d.id} draft={d} startupNames={startupNames} />
                 ))}

@@ -41,6 +41,7 @@ export async function pmQueue(db: Db, ws: string) {
       body: inboundItems.body,
       state: inboundItems.state,
       reason: inboundItems.reason,
+      urgent: inboundItems.urgent,
       triage: inboundItems.triage,
       from: people.name,
     })

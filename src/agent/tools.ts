@@ -3,6 +3,8 @@ import { and, asc, eq, ilike, inArray } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import type { Db } from "../db/client";
+import { DEMO_TODAY, PM_OPEN_SLOTS, STAFF } from "../seed/cohort";
+import { SAFETY_ACK } from "./policy";
 import { drafts, facts, inboundItems, people, sessions, startups } from "../db/schema";
 
 export type ToolCtx = { db: Db; workspaceId: string; inboundItemId: string };
@@ -105,6 +107,29 @@ export const TOOLS = {
     },
   }),
 
+  get_pm_availability: tool({
+    description: "Get today's date and the program manager's open call slots for the next few days, to offer founders real times.",
+    input: z.object({}),
+    async run() {
+      return { today: DEMO_TODAY, programManager: STAFF.name, openSlots: PM_OPEN_SLOTS };
+    },
+  }),
+
+  get_stipend_history: tool({
+    description: "Get a startup's stipend record: the monthly amount and how many early payments it has already had this program.",
+    input: z.object({ startupId: z.string() }),
+    async run(ctx, { startupId }) {
+      const s = await requireStartup(ctx, startupId);
+      return {
+        today: DEMO_TODAY,
+        monthlyStipendEur: 2000,
+        paidOn: "the 1st of each month",
+        nextPayment: "Dec 1 2026 (that is \"next month's stipend\"; paying it now is less than one month early)",
+        earlyPaymentsThisProgram: s.stipendAdvances,
+      };
+    },
+  }),
+
   get_demo_day_schedule: tool({
     description: "Get the demo day running order: each startup's id, name and slot number.",
     input: z.object({}),
@@ -187,13 +212,45 @@ export const TOOLS = {
     },
   }),
 
+  send_safety_ack: tool({
+    description:
+      "Send the program's fixed safety acknowledgment to the person who reported inappropriate behavior or a safety issue. The text is fixed and sent immediately; you can't change it. Escalate (urgent) right after.",
+    input: z.object({ toPersonId: z.string() }),
+    async run(ctx, { toPersonId }) {
+      const [p] = await ctx.db
+        .select({ id: people.id })
+        .from(people)
+        .where(and(eq(people.workspaceId, ctx.workspaceId), eq(people.id, toPersonId)));
+      if (!p) throw new Error("that person is not in this workspace");
+      const existing = await ctx.db
+        .select({ id: drafts.id, payload: drafts.payload })
+        .from(drafts)
+        .where(and(eq(drafts.workspaceId, ctx.workspaceId), eq(drafts.inboundItemId, ctx.inboundItemId)));
+      if (existing.some((d) => (d.payload as { purpose?: string }).purpose === "safety_ack")) {
+        return { sent: false, note: "already sent for this item" };
+      }
+      const id = newId(ctx, "draft");
+      await ctx.db.insert(drafts).values({
+        id,
+        workspaceId: ctx.workspaceId,
+        inboundItemId: ctx.inboundItemId,
+        kind: "message",
+        payload: { toPersonIds: [toPersonId], subject: "We've got your message", body: SAFETY_ACK, purpose: "safety_ack" },
+        state: "sent",
+        appliedAt: new Date(),
+      });
+      return { sent: true, text: SAFETY_ACK };
+    },
+  }),
+
   escalate: tool({
-    description: "Hand this item to the program manager without answering it. Use for money, intros, leaving the program, conflicts, or anything you are unsure about.",
-    input: z.object({ reason: z.string() }),
-    async run(ctx, { reason }) {
+    description:
+      "Hand this item to the program manager without answering it, with a one-line reason naming the policy section. Set urgent for safety, conduct or distress.",
+    input: z.object({ reason: z.string(), urgent: z.boolean().optional() }),
+    async run(ctx, { reason, urgent }) {
       await ctx.db
         .update(inboundItems)
-        .set({ state: "needs_call", reason })
+        .set({ state: "needs_call", reason, urgent: urgent ?? false })
         .where(and(eq(inboundItems.id, ctx.inboundItemId), eq(inboundItems.workspaceId, ctx.workspaceId)));
       return { ok: true };
     },
@@ -206,8 +263,21 @@ export function isToolName(name: string): name is ToolName {
   return Object.hasOwn(TOOLS, name);
 }
 
-export function toAnthropicTools(): Anthropic.Tool[] {
-  return Object.entries(TOOLS).map(([name, t]) => {
+// The tools Ada keeps when triage has already routed an item to the human: records and the safety
+// acknowledgment only, no drafting.
+export const ESCALATION_TOOLS: ToolName[] = [
+  "get_startup",
+  "list_sessions",
+  "get_stipend_history",
+  "set_risk",
+  "send_safety_ack",
+  "escalate",
+];
+
+export function toAnthropicTools(only?: ToolName[]): Anthropic.Tool[] {
+  return Object.entries(TOOLS)
+    .filter(([name]) => !only || only.includes(name as ToolName))
+    .map(([name, t]) => {
     const schema = z.toJSONSchema(t.input) as Record<string, unknown>;
     delete schema.$schema;
     return {

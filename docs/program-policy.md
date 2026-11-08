@@ -32,7 +32,7 @@ Rule: *money goes to the program manager unless this policy gives a clear yes or
 | Founder asks for the stipend early, no reason given | `ask_for_context` | Ask how early and why. |
 | Early stipend, **first** request this program, ≤1 month ahead, startup not flagged at-risk | `handle` | Draft a yes and tell finance (rule: one advance per startup per program). |
 | Early stipend, **second** request, or more than one month ahead | `handle` | Draft a clear, kind no that cites the rule. |
-| Early stipend because of hardship, or the startup is flagged at-risk | `escalate` | Judgment call. Hardship is never decided by Ada. |
+| Early stipend because of hardship, or the startup is flagged at-risk | `escalate` | Judgment call. Hardship is never decided by Ada. Hardship means the startup can't cover its basic costs (payroll, rent, running out of cash). An ordinary business expense with a date, like a supplier deposit, isn't hardship (ruled Nov 4, p01). "Flagged at-risk" means status at-risk or risk level 2 or higher. |
 | Stipend late or missing, or bank details changed | `escalate` | Payment errors and bank changes are fraud-sensitive. |
 | Invoice from a founder, vendor or mentor | `escalate` | |
 | Question about grant terms, the grant budget or reimbursements | `escalate` | |
@@ -138,4 +138,4 @@ The program manager locked the five open questions:
 ## How this file is used
 
 - Every `expected.action` in `evals/*.jsonl` cites a section here. When a label and this policy disagree, fix the policy first, then the label, then the prompt.
-- Ada's prompts don't read this file yet. Pointing them at it is the next build step (see the README).
+- Ada and triage read this file as their rulebook (`src/agent/policy.ts`, since Nov 8). The safety acknowledgment text is also fixed in code, and a test checks the two match.

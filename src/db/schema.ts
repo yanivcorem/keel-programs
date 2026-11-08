@@ -37,6 +37,8 @@ export const startups = pgTable("startups", {
   status: text("status", { enum: ["on_track", "drifting", "at_risk"] }).notNull(),
   riskLevel: integer("risk_level").notNull().default(0),
   demoDaySlot: integer("demo_day_slot"),
+  // Early stipend payments already made this program (policy §1 allows one).
+  stipendAdvances: integer("stipend_advances").notNull().default(0),
 });
 
 export const people = pgTable("people", {
@@ -81,6 +83,7 @@ export const inboundItems = pgTable("inbound_items", {
   triage: jsonb("triage"),
   state: text("state", { enum: ["new", "handled", "needs_call"] }).notNull().default("new"),
   reason: text("reason"),
+  urgent: boolean("urgent").notNull().default(false),
 });
 
 export const drafts = pgTable("drafts", {
@@ -89,7 +92,8 @@ export const drafts = pgTable("drafts", {
   inboundItemId: text("inbound_item_id").references(() => inboundItems.id, { onDelete: "cascade" }),
   kind: text("kind", { enum: ["message", "calendar_change"] }).notNull(),
   payload: jsonb("payload").notNull(),
-  state: text("state", { enum: ["pending", "approved", "rejected"] }).notNull().default("pending"),
+  // "sent" is only ever the fixed safety acknowledgment (policy default 4), sent without approval.
+  state: text("state", { enum: ["pending", "approved", "rejected", "sent"] }).notNull().default("pending"),
   appliedAt: timestamp("applied_at", { withTimezone: true }),
 });
 

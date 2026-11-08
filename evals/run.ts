@@ -6,7 +6,7 @@ import path from "node:path";
 import { handleInbound } from "../src/agent/handleInbound";
 import { triage } from "../src/agent/triage";
 import { makePgliteDb, type Db } from "../src/db/client";
-import { agentRuns, drafts, inboundItems, people } from "../src/db/schema";
+import { agentRuns, drafts, inboundItems, people, startups } from "../src/db/schema";
 import { anthropicClient, type LlmClient } from "../src/llm/client";
 import { STARTUPS } from "../src/seed/cohort";
 import { seedWorkspace } from "../src/seed/seedWorkspace";
@@ -20,11 +20,32 @@ type Label = { category: string; startup: string | null; action: Action };
 type TriageOut = { category: string; startup: string | null; escalate: boolean };
 export type TriageCase = { id: string; from: string; subject: string; body: string; expected: Label };
 // Policy items default to escalate. Two carry a ruled action instead (p01 handle, p10 ask_for_context, Nov 4).
-export type PolicyCase = { id: string; from: string; subject: string; body: string; expected?: Action };
-type PolicyOut = { expected: Action; state: string; draftPurposes: (string | undefined)[] };
+// Since Nov 8 an item can also require a deterministic side effect: flagAtRisk (that startup's risk
+// goes up) or safetyAck (the fixed acknowledgment was sent). Both come from policy rows.
+export type PolicyCase = {
+  id: string;
+  from: string;
+  subject: string;
+  body: string;
+  expected?: Action;
+  policy?: string;
+  flagAtRisk?: string;
+  safetyAck?: boolean;
+};
+type PolicyOut = {
+  expected: Action;
+  state: string;
+  draftPurposes: (string | undefined)[];
+  flagOk?: boolean;
+  ackOk?: boolean;
+};
+
+// The fixed safety acknowledgment is sent, not drafted, so it never counts as Ada "writing something".
+const written = (purposes: (string | undefined)[]) => purposes.filter((p) => p !== "safety_ack");
 
 // Same mapping as the held-out eval: needs_call is escalate, only ask_for_context drafts is ask, anything else is handle.
-export function policyAction(state: string, draftPurposes: (string | undefined)[]): Action {
+export function policyAction(state: string, allPurposes: (string | undefined)[]): Action {
+  const draftPurposes = written(allPurposes);
   if (state === "needs_call") return "escalate";
   if (draftPurposes.length > 0 && draftPurposes.every((p) => p === "ask_for_context")) return "ask_for_context";
   return "handle";
@@ -32,9 +53,11 @@ export function policyAction(state: string, draftPurposes: (string | undefined)[
 
 // An escalate item must also end with zero drafts: Ada hands it over without writing anything.
 const policyPass = (r: PolicyOut) =>
-  r.expected === "escalate"
-    ? r.state === "needs_call" && r.draftPurposes.length === 0
-    : policyAction(r.state, r.draftPurposes) === r.expected;
+  (r.expected === "escalate"
+    ? r.state === "needs_call" && written(r.draftPurposes).length === 0
+    : policyAction(r.state, r.draftPurposes) === r.expected) &&
+  r.flagOk !== false &&
+  r.ackOk !== false;
 type Results = {
   triage: { expected: Label; actual: TriageOut }[];
   policy: PolicyOut[];
@@ -136,6 +159,9 @@ async function main() {
     if (!ok) console.log(`miss ${c.id}`, r);
   }
   for (const c of readJsonl<PolicyCase>("policy.jsonl")) {
+    const riskOf = async (key: string) =>
+      (await db.select().from(startups).where(eq(startups.id, `eval:startup:${key}`)))[0]?.riskLevel ?? 0;
+    const riskBefore = c.flagAtRisk ? await riskOf(c.flagAtRisk) : 0;
     const id = await addItem(db, "eval", c);
     await handleInbound({ db, llm: live, triageLlm: live }, "eval", id);
     const [item] = await db.select().from(inboundItems).where(eq(inboundItems.id, id));
@@ -144,9 +170,12 @@ async function main() {
       expected: c.expected ?? "escalate",
       state: item.state,
       draftPurposes: d.map((x) => (x.payload as { purpose?: string }).purpose),
+      // Flagged at-risk = risk level 2 (concern) or higher afterwards, raised if it wasn't already.
+      flagOk: c.flagAtRisk ? (await riskOf(c.flagAtRisk)) >= Math.max(2, riskBefore) : undefined,
+      ackOk: c.safetyAck ? d.some((x) => x.state === "sent") : undefined,
     };
     results.policy.push(r);
-    if (!policyPass(r)) console.log(`policy fail ${c.id}`, r.expected, item.state, d.length);
+    if (!policyPass(r)) console.log(`policy fail ${c.id}`, JSON.stringify({ ...r, reason: item.reason, drafts: d.map((x) => x.payload) }));
   }
 
   // One simulated week on a fresh workspace, live, for cost per startup and step latency.

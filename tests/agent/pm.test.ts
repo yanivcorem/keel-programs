@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { handleInbound } from "../../src/agent/handleInbound";
 import type { Db } from "../../src/db/client";
 import { agentRuns, drafts, facts, inboundItems, startups } from "../../src/db/schema";
+import { SAFETY_ACK, POLICY } from "../../src/agent/policy";
 import { scriptedClient } from "../../src/llm/scripted";
 import { addInbound, seededDb } from "../helpers/fixtures";
 import { text, toolUse, toolUses, triageReply } from "../helpers/llm";
@@ -97,19 +98,89 @@ describe("handleInbound", () => {
     expect(await db.select().from(drafts).where(eq(drafts.state, "pending"))).toHaveLength(2);
   });
 
-  it("money request escalates without a PM run", async () => {
+  it("money request: escalation pass hands it over with no drafts", async () => {
     const db = await seededDb();
     const id = await addInbound(db, "w1", "w1:inbound:3", "stipend advance?");
     const triageLlm = scriptedClient([
       triageReply({ category: "participant_request", startupId: null, escalate: true, reason: "money" }),
     ]);
-    const llm = scriptedClient([]);
+    const llm = scriptedClient([toolUse("escalate", { reason: "§1: hardship stipend" })]);
+
+    await handleInbound({ db, llm, triageLlm }, "w1", id);
+
+    const row = await item(db, id);
+    expect(row.state).toBe("needs_call");
+    expect(row.reason).toBe("§1: hardship stipend");
+    expect(await db.select().from(drafts)).toHaveLength(0);
+  });
+
+  it("escalation pass can't draft: a draft call ends the pass, nothing is drafted", async () => {
+    const db = await seededDb();
+    const id = await addInbound(db, "w1", "w1:inbound:nodraft", "please pay our invoice");
+    const triageLlm = scriptedClient([
+      triageReply({ category: "participant_request", startupId: null, escalate: true, reason: "§1 invoice" }),
+    ]);
+    const llm = scriptedClient([toolUse("draft_message", { toPersonIds: ["w1:person:sam"], subject: "x", body: "y" })]);
 
     await handleInbound({ db, llm, triageLlm }, "w1", id);
 
     expect((await item(db, id)).state).toBe("needs_call");
     expect(await db.select().from(drafts)).toHaveLength(0);
-    expect(await db.select().from(agentRuns).where(eq(agentRuns.agent, "pm"))).toHaveLength(0);
+  });
+
+  it("escalation pass flags at-risk before handing over (co-founder leaving)", async () => {
+    const db = await seededDb();
+    const id = await addInbound(db, "w1", "w1:inbound:leave", "our CTO leaves on Friday");
+    const triageLlm = scriptedClient([
+      triageReply({ category: "participant_request", startupId: KELP, escalate: true, reason: "§3 co-founder leaves" }),
+    ]);
+    const llm = scriptedClient([
+      toolUse("set_risk", { startupId: KELP, riskLevel: 2, reason: "co-founder leaving" }),
+      toolUse("escalate", { reason: "§3: co-founder leaves; flagged at-risk" }),
+    ]);
+
+    await handleInbound({ db, llm, triageLlm }, "w1", id);
+
+    const [s] = await db.select().from(startups).where(eq(startups.id, KELP));
+    expect(s.riskLevel).toBe(2);
+    expect((await item(db, id)).state).toBe("needs_call");
+  });
+
+  it("safety report: fixed acknowledgment is sent word for word, then urgent escalation", async () => {
+    const db = await seededDb();
+    const id = await addInbound(db, "w1", "w1:inbound:safety", "something happened at the mixer");
+    const triageLlm = scriptedClient([
+      triageReply({ category: "other", startupId: KELP, escalate: true, reason: "§4 conduct report" }),
+    ]);
+    const llm = scriptedClient([
+      toolUse("send_safety_ack", { toPersonId: "w1:person:kelpforge-founder" }),
+      toolUse("send_safety_ack", { toPersonId: "w1:person:kelpforge-founder" }),
+      toolUse("escalate", { reason: "§4: conduct report", urgent: true }),
+    ]);
+
+    await handleInbound({ db, llm, triageLlm }, "w1", id);
+
+    const d = await db.select().from(drafts);
+    expect(d).toHaveLength(1);
+    expect(d[0].state).toBe("sent");
+    expect((d[0].payload as { body: string }).body).toBe(SAFETY_ACK);
+    const row = await item(db, id);
+    expect(row.state).toBe("needs_call");
+    expect(row.urgent).toBe(true);
+  });
+
+  it("escalation pass failure still hands the item over on triage's reason", async () => {
+    const db = await seededDb();
+    const id = await addInbound(db, "w1", "w1:inbound:down", "stipend advance?");
+    const triageLlm = scriptedClient([
+      triageReply({ category: "participant_request", startupId: null, escalate: true, reason: "§1 money" }),
+    ]);
+
+    await handleInbound({ db, llm: scriptedClient([]), triageLlm }, "w1", id);
+
+    const row = await item(db, id);
+    expect(row.state).toBe("needs_call");
+    expect(row.reason).toBe("§1 money");
   });
 
   it("bad tool call escalates", async () => {
@@ -177,5 +248,16 @@ describe("handleInbound", () => {
     expect(row.reason).toBe("step limit");
     const [run] = await db.select().from(agentRuns).where(eq(agentRuns.agent, "pm"));
     expect((run.steps as unknown[]).length).toBe(8);
+  });
+});
+
+describe("program policy", () => {
+  it("the fixed safety acknowledgment matches the policy file word for word", () => {
+    expect(POLICY).toContain(`*"${SAFETY_ACK}"*`);
+  });
+
+  it("is loaded into both prompts", async () => {
+    const { PM_SYSTEM, PM_ESCALATION_SYSTEM, TRIAGE_SYSTEM } = await import("../../src/agent/prompts");
+    for (const p of [PM_SYSTEM, PM_ESCALATION_SYSTEM, TRIAGE_SYSTEM]) expect(p).toContain("## 5. Attendance and engagement");
   });
 });

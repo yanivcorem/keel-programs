@@ -58,7 +58,7 @@ export async function triage(
   const res = await llm.create({
     model,
     max_tokens: 1024,
-    system: TRIAGE_SYSTEM,
+    system: [{ type: "text", text: TRIAGE_SYSTEM, cache_control: { type: "ephemeral" } }],
     messages: [
       {
         role: "user",

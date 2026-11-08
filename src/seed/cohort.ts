@@ -55,6 +55,15 @@ export const INVESTORS: { key: string; name: string; firm: string; confirmed: bo
 
 export const STAFF = { key: "sam", name: "Sam Rivera", role: "Program manager" };
 
+// The demo's "today" (week 5) and the program manager's open call slots over the next few days.
+export const DEMO_TODAY = "Tuesday, Nov 3 2026";
+export const PM_OPEN_SLOTS = [
+  "Wed Nov 4, 16:30-17:00",
+  "Thu Nov 5, 10:00-10:30",
+  "Thu Nov 5, 16:30-17:00",
+  "Mon Nov 9, 11:00-11:30",
+];
+
 export const EVENTS = [
   { key: "investor-panel", name: "Investor panel", kind: "investor_panel", startsAt: new Date("2026-11-19T16:00:00Z") },
   { key: "demo-day", name: "Demo day", kind: "demo_day", startsAt: new Date("2026-12-10T15:00:00Z") },
