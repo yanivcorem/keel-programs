@@ -63,6 +63,14 @@ export async function approveDraft(
         data: { change: "demo day slot", from: mover.demoDaySlot, to: change.toSlot, swappedWith: holder?.id ?? null },
         sourceInboundItemId: draft.inboundItemId,
       });
+    } else if (draft.kind === "run_sheet") {
+      await tx.insert(facts).values({
+        id: `${workspaceId}:fact:${randomUUID()}`,
+        workspaceId,
+        type: "decision",
+        data: { action: "run sheet approved", eventId: (payload as { eventId: string }).eventId },
+        sourceInboundItemId: draft.inboundItemId,
+      });
     } else {
       const msg = payload as Message;
       await tx.insert(facts).values({

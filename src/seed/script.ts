@@ -6,7 +6,7 @@ export type ScriptedItem = {
   fromName: string;
   subject: string;
   body: string;
-  moment: 1 | 2 | null;
+  moment: 1 | 2 | 3 | null;
 };
 
 export const SCRIPT: ScriptedItem[] = [
@@ -49,5 +49,14 @@ export const SCRIPT: ScriptedItem[] = [
     body:
       "Hi Sam, is it possible to get next month's stipend paid early? We have a supplier deposit due before the end of the month.",
     moment: null,
+  },
+  {
+    simDay: 5,
+    kind: "email",
+    fromName: "Felix Ortega",
+    subject: "Nov 19 panel",
+    body:
+      "Hi Sam, happy to confirm I'll join the investor panel on the 19th. What's the format, and will I get anything on the startups beforehand? Best, Felix",
+    moment: 3,
   },
 ];

@@ -65,8 +65,23 @@ export const PM_OPEN_SLOTS = [
 ];
 
 export const EVENTS = [
-  { key: "investor-panel", name: "Investor panel", kind: "investor_panel", startsAt: new Date("2026-11-19T16:00:00Z") },
-  { key: "demo-day", name: "Demo day", kind: "demo_day", startsAt: new Date("2026-12-10T15:00:00Z") },
+  {
+    key: "investor-panel",
+    name: "Investor panel",
+    kind: "investor_panel",
+    startsAt: new Date("2026-11-19T16:00:00Z"),
+    details:
+      "Thu Nov 19, 16:00-18:30 at Greenhouse Lab, 14 Harbour Street, 3rd floor. Six startups pitch: 5 minutes each plus 3 minutes of investor Q&A, " +
+      "then 45 minutes of open conversation with drinks. The panel is for feedback and relationships; nobody is expected to commit money on the day. " +
+      "Investors get a one-page brief per pitching startup two days before.",
+  },
+  {
+    key: "demo-day",
+    name: "Demo day",
+    kind: "demo_day",
+    startsAt: new Date("2026-12-10T15:00:00Z"),
+    details: "Thu Dec 10, 15:00-19:00, Northwind Hall. All ten startups pitch in slot order.",
+  },
 ];
 
 // Weeks 1-4 of mentor sessions. Kelpforge's week-2 note is the first co-founder-tension flag,

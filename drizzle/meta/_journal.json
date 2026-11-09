@@ -15,6 +15,13 @@
       "when": 1794148168784,
       "tag": "0001_nov14_part1",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794208901436,
+      "tag": "0002_events_rsvps",
+      "breakpoints": true
     }
   ]
 }

@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
-import { agentRuns, drafts, inboundItems, people, programs, sessions, startups, workspaces } from "../db/schema";
+import { agentRuns, drafts, events, inboundItems, people, programs, rsvps, sessions, startups, workspaces } from "../db/schema";
+import { INVESTORS } from "../seed/cohort";
 
 export async function programHeader(db: Db, ws: string) {
   const [program] = await db.select().from(programs).where(eq(programs.workspaceId, ws));
@@ -114,4 +115,25 @@ export async function mentorList(db: Db, ws: string) {
     .where(eq(sessions.workspaceId, ws))
     .orderBy(asc(sessions.week));
   return mentors.map((m) => ({ ...m, sessions: all.filter((s) => s.mentorId === m.id) }));
+}
+
+export async function eventList(db: Db, ws: string) {
+  const all = await db.select().from(events).where(eq(events.workspaceId, ws)).orderBy(asc(events.startsAt));
+  const guests = await db
+    .select({ eventId: rsvps.eventId, name: people.name, status: rsvps.status })
+    .from(rsvps)
+    .innerJoin(people, eq(people.id, rsvps.personId))
+    .where(eq(rsvps.workspaceId, ws));
+  const sheets = await db
+    .select()
+    .from(drafts)
+    .where(and(eq(drafts.workspaceId, ws), eq(drafts.kind, "run_sheet")));
+  return all.map((e) => ({
+    ...e,
+    guests: guests
+      .filter((g) => g.eventId === e.id)
+      .map((g) => ({ ...g, firm: INVESTORS.find((i) => i.name === g.name)?.firm ?? null })),
+    // The newest run sheet for the event, if Ada has drafted one.
+    runSheet: sheets.filter((d) => (d.payload as { eventId: string }).eventId === e.id).at(-1) ?? null,
+  }));
 }

@@ -66,9 +66,25 @@ describe("tools", () => {
     await expect(TOOLS.ask_for_context.run(c, { toPersonId: "w2:person:x", question: "?" })).rejects.toThrow();
   });
 
-  it("exports 12 Anthropic tools with object input schemas", () => {
+  it("exports 16 Anthropic tools with object input schemas", () => {
     const tools = toAnthropicTools();
-    expect(tools).toHaveLength(12);
+    expect(tools).toHaveLength(16);
     expect(tools.every((t) => t.input_schema.type === "object")).toBe(true);
+  });
+
+  it("refuses one message to several investors (no shared addresses)", async () => {
+    const db = await seededDb();
+    const ctx = { db, workspaceId: "w1", inboundItemId: await addInbound(db, "w1", "w1:inbound:inv") };
+    await expect(
+      TOOLS.draft_message.run(ctx, { toPersonIds: ["w1:person:maren", "w1:person:isaac"], subject: "x", body: "y" }),
+    ).rejects.toThrow("one message each");
+  });
+
+  it("records an RSVP and counts it on the event", async () => {
+    const db = await seededDb();
+    const ctx = { db, workspaceId: "w1", inboundItemId: await addInbound(db, "w1", "w1:inbound:rsvp") };
+    await TOOLS.set_rsvp.run(ctx, { eventId: "w1:event:investor-panel", personId: "w1:person:felix", status: "confirmed" });
+    const e = (await TOOLS.get_event.run(ctx, { name: "investor panel" })) as { confirmed: number; invited: number };
+    expect(e).toMatchObject({ confirmed: 4, invited: 6 });
   });
 });

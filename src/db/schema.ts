@@ -70,6 +70,20 @@ export const events = pgTable("events", {
   name: text("name").notNull(),
   kind: text("kind").notNull(),
   startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+  // Venue, format and timings: what Ada answers logistics questions from.
+  details: text("details").notNull().default(""),
+});
+
+export const rsvps = pgTable("rsvps", {
+  id: text("id").primaryKey(),
+  workspaceId: workspaceId(),
+  eventId: text("event_id")
+    .notNull()
+    .references(() => events.id, { onDelete: "cascade" }),
+  personId: text("person_id")
+    .notNull()
+    .references(() => people.id, { onDelete: "cascade" }),
+  status: text("status", { enum: ["invited", "confirmed", "declined"] }).notNull().default("invited"),
 });
 
 export const inboundItems = pgTable("inbound_items", {
@@ -90,7 +104,7 @@ export const drafts = pgTable("drafts", {
   id: text("id").primaryKey(),
   workspaceId: workspaceId(),
   inboundItemId: text("inbound_item_id").references(() => inboundItems.id, { onDelete: "cascade" }),
-  kind: text("kind", { enum: ["message", "calendar_change"] }).notNull(),
+  kind: text("kind", { enum: ["message", "calendar_change", "run_sheet"] }).notNull(),
   payload: jsonb("payload").notNull(),
   // "sent" is only ever the fixed safety acknowledgment (policy default 4), sent without approval.
   state: text("state", { enum: ["pending", "approved", "rejected", "sent"] }).notNull().default("pending"),

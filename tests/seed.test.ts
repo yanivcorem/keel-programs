@@ -1,6 +1,8 @@
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { people, programs, sessions, startups } from "../src/db/schema";
+import { rsvps } from "../src/db/schema";
+import { seededDb } from "./helpers/fixtures";
 import { SCRIPT } from "../src/seed/script";
 import { seedWorkspace } from "../src/seed/seedWorkspace";
 import { makeTestDb } from "./helpers/db";
@@ -52,7 +54,14 @@ describe("seedWorkspace", () => {
     expect(a).toEqual(b);
   });
 
-  it("scripts one item per day for days 1 to 4", () => {
-    expect(SCRIPT.map((s) => s.simDay)).toEqual([1, 2, 3, 4]);
+  it("scripts one item per day for days 1 to 5", () => {
+    expect(SCRIPT.map((s) => s.simDay)).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it("invites every investor to the panel with three confirmed", async () => {
+    const db = await seededDb();
+    const r = await db.select().from(rsvps);
+    expect(r).toHaveLength(6);
+    expect(r.filter((x) => x.status === "confirmed")).toHaveLength(3);
   });
 });

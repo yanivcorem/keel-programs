@@ -39,16 +39,16 @@ describe("simulation", () => {
 
   it("advance past end is a no-op", async () => {
     const db = await seededDb();
-    for (let i = 0; i < 4; i++) await advanceDay({ db, now: NOW }, "w1");
+    for (let i = 0; i < 5; i++) await advanceDay({ db, now: NOW }, "w1");
 
     const res = await advanceDay({ db, now: NOW }, "w1");
 
     expect(res).toEqual({
-      simDay: 4,
+      simDay: 5,
       added: 0,
       message: "That's the end of the scripted week. Reset the demo to start again.",
     });
-    expect(await db.select().from(inboundItems)).toHaveLength(4);
+    expect(await db.select().from(inboundItems)).toHaveLength(5);
   });
 
   it("reset after approvals restores Soilmind's slot and day 0", async () => {

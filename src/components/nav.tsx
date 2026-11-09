@@ -5,6 +5,7 @@ const ITEMS = [
   { href: "/pm", label: "AI Program Manager", badge: true },
   { href: "/startups", label: "Startups" },
   { href: "/mentors", label: "Mentors" },
+  { href: "/events", label: "Events" },
 ];
 
 function Links({ badge }: { badge: number }) {

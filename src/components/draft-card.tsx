@@ -9,11 +9,42 @@ import { editFor } from "@/lib/drafts";
 
 type Draft = {
   id: string;
-  kind: "message" | "calendar_change";
+  kind: "message" | "calendar_change" | "run_sheet";
   state: "pending" | "approved" | "rejected" | "sent";
   payload: unknown;
   to: string[];
 };
+
+type RunSheetPayload = {
+  agenda: { time: string; item: string }[];
+  pitchOrder: { startupId: string; why: string }[];
+  notes?: string;
+};
+
+export function RunSheet({ payload, startupNames }: { payload: RunSheetPayload; startupNames: Record<string, string> }) {
+  return (
+    <div className="flex flex-col gap-3 text-sm" data-testid="run-sheet">
+      <ul className="flex flex-col gap-1">
+        {payload.agenda.map((a, i) => (
+          <li key={i}>
+            <span className="font-mono text-xs text-muted-foreground">{a.time}</span> {a.item}
+          </li>
+        ))}
+      </ul>
+      <div>
+        <p className="font-medium">Suggested pitch order</p>
+        <ol className="list-decimal pl-5">
+          {payload.pitchOrder.map((p) => (
+            <li key={p.startupId}>
+              {startupNames[p.startupId] ?? p.startupId}: <span className="text-muted-foreground">{p.why}</span>
+            </li>
+          ))}
+        </ol>
+      </div>
+      {payload.notes ? <p className="text-muted-foreground">{payload.notes}</p> : null}
+    </div>
+  );
+}
 
 export function DraftCard({ draft, startupNames }: { draft: Draft; startupNames: Record<string, string> }) {
   const [editing, setEditing] = useState(false);
@@ -26,7 +57,11 @@ export function DraftCard({ draft, startupNames }: { draft: Draft; startupNames:
     <div className="rounded-lg border p-4" data-testid="draft-card">
       <div className="mb-2 flex items-center justify-between gap-2">
         <p className="text-sm font-medium">
-          {draft.kind === "message" ? `Message to ${draft.to.join(", ")}` : "Demo day schedule change"}
+          {draft.kind === "message"
+            ? `Message to ${draft.to.join(", ")}`
+            : draft.kind === "run_sheet"
+              ? "Run sheet"
+              : "Demo day schedule change"}
         </p>
         <Badge
           variant={
@@ -53,6 +88,8 @@ export function DraftCard({ draft, startupNames }: { draft: Draft; startupNames:
             <p className="mt-2 text-sm whitespace-pre-wrap">{body}</p>
           )}
         </>
+      ) : draft.kind === "run_sheet" ? (
+        <RunSheet payload={draft.payload as RunSheetPayload} startupNames={startupNames} />
       ) : (
         <p className="text-sm">
           Move {startupNames[change.startupId ?? ""] ?? change.startupId} from slot {change.fromSlot} to slot{" "}

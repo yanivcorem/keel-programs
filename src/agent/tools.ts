@@ -5,7 +5,7 @@ import { z } from "zod";
 import type { Db } from "../db/client";
 import { DEMO_TODAY, PM_OPEN_SLOTS, STAFF } from "../seed/cohort";
 import { SAFETY_ACK } from "./policy";
-import { drafts, facts, inboundItems, people, sessions, startups } from "../db/schema";
+import { drafts, events, facts, inboundItems, people, rsvps, sessions, startups } from "../db/schema";
 
 export type ToolCtx = { db: Db; workspaceId: string; inboundItemId: string };
 
@@ -130,6 +130,95 @@ export const TOOLS = {
     },
   }),
 
+  get_event: tool({
+    description:
+      "Look up a program event by name (for example \"investor panel\" or \"demo day\"): its id, date, venue and format details, and every invited guest's RSVP status.",
+    input: z.object({ name: z.string() }),
+    async run(ctx, { name }) {
+      const all = await ctx.db.select().from(events).where(eq(events.workspaceId, ctx.workspaceId));
+      const words = name.toLowerCase().split(/\s+/).filter(Boolean);
+      const e = all.find((x) => words.every((w) => x.name.toLowerCase().includes(w)));
+      if (!e) return { found: false, events: all.map((x) => x.name) };
+      const guests = await ctx.db
+        .select({ personId: rsvps.personId, name: people.name, role: people.role, status: rsvps.status })
+        .from(rsvps)
+        .innerJoin(people, eq(people.id, rsvps.personId))
+        .where(and(eq(rsvps.workspaceId, ctx.workspaceId), eq(rsvps.eventId, e.id)));
+      const confirmed = guests.filter((g) => g.status === "confirmed").length;
+      return { found: true, id: e.id, name: e.name, startsAt: e.startsAt, details: e.details, confirmed, invited: guests.length, guests };
+    },
+  }),
+
+  set_rsvp: tool({
+    description: "Record a guest's RSVP for an event (confirmed or declined) when they tell you. This updates the program's records; it sends nothing.",
+    input: z.object({ eventId: z.string(), personId: z.string(), status: z.enum(["confirmed", "declined"]) }),
+    async run(ctx, { eventId, personId, status }) {
+      const updated = await ctx.db
+        .update(rsvps)
+        .set({ status })
+        .where(and(eq(rsvps.workspaceId, ctx.workspaceId), eq(rsvps.eventId, eventId), eq(rsvps.personId, personId)))
+        .returning({ id: rsvps.id });
+      if (updated.length === 0) throw new Error("that person isn't on this event's guest list");
+      await ctx.db.insert(facts).values({
+        id: newId(ctx, "fact"),
+        workspaceId: ctx.workspaceId,
+        type: "decision",
+        data: { rsvp: status, eventId, personId },
+        sourceInboundItemId: ctx.inboundItemId,
+      });
+      return { ok: true };
+    },
+  }),
+
+  get_readiness: tool({
+    description:
+      "Get every startup's pitch readiness signals: status, risk level (0-3), demo day slot and the latest mentor session note. Use it to suggest who pitches at an event.",
+    input: z.object({}),
+    async run(ctx) {
+      const all = await ctx.db.select().from(startups).where(eq(startups.workspaceId, ctx.workspaceId)).orderBy(asc(startups.demoDaySlot));
+      const notes = await ctx.db
+        .select({ startupId: sessions.startupId, week: sessions.week, notes: sessions.notes })
+        .from(sessions)
+        .where(eq(sessions.workspaceId, ctx.workspaceId))
+        .orderBy(asc(sessions.week));
+      return all.map((s) => ({
+        startupId: s.id,
+        name: s.name,
+        status: s.status,
+        riskLevel: s.riskLevel,
+        latestNote: notes.filter((n) => n.startupId === s.id).at(-1) ?? null,
+      }));
+    },
+  }),
+
+  draft_run_sheet: tool({
+    description:
+      "Draft the run sheet for an event: the timed agenda and a suggested pitch order with a one-line reason per startup. A draft for the program manager to approve; nothing is shared.",
+    input: z.object({
+      eventId: z.string(),
+      agenda: z.array(z.object({ time: z.string(), item: z.string() })).min(1),
+      pitchOrder: z.array(z.object({ startupId: z.string(), why: z.string() })).min(1),
+      notes: z.string().optional(),
+    }),
+    async run(ctx, input) {
+      const [e] = await ctx.db
+        .select({ id: events.id })
+        .from(events)
+        .where(and(eq(events.workspaceId, ctx.workspaceId), eq(events.id, input.eventId)));
+      if (!e) throw new Error(`event ${input.eventId} is not in this workspace`);
+      for (const p of input.pitchOrder) await requireStartup(ctx, p.startupId);
+      const id = newId(ctx, "draft");
+      await ctx.db.insert(drafts).values({
+        id,
+        workspaceId: ctx.workspaceId,
+        inboundItemId: ctx.inboundItemId,
+        kind: "run_sheet",
+        payload: input,
+      });
+      return { draftId: id, state: "pending" };
+    },
+  }),
+
   get_demo_day_schedule: tool({
     description: "Get the demo day running order: each startup's id, name and slot number.",
     input: z.object({}),
@@ -151,11 +240,15 @@ export const TOOLS = {
     }),
     async run(ctx, { toPersonIds, subject, body }) {
       const found = await ctx.db
-        .select({ id: people.id })
+        .select({ id: people.id, role: people.role })
         .from(people)
         .where(and(eq(people.workspaceId, ctx.workspaceId), inArray(people.id, toPersonIds)));
       if (found.length !== new Set(toPersonIds).size) {
         throw new Error("a recipient is not in this workspace");
+      }
+      // A shared message would show each investor the others' addresses (policy: never share contacts).
+      if (found.length > 1 && found.some((p) => p.role === "investor")) {
+        throw new Error("investors get one message each; draft a separate message per investor");
       }
       const id = newId(ctx, "draft");
       await ctx.db.insert(drafts).values({

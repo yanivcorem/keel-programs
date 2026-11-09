@@ -1,5 +1,5 @@
 import type { Db } from "../db/client";
-import { events, people, programs, sessions, startups, workspaces } from "../db/schema";
+import { events, people, programs, rsvps, sessions, startups, workspaces } from "../db/schema";
 import {
   EVENTS,
   INVESTORS,
@@ -114,6 +114,18 @@ async function seedRows(db: Db, workspaceId: string): Promise<void> {
       name: e.name,
       kind: e.kind,
       startsAt: e.startsAt,
+      details: e.details,
+    })),
+  );
+
+  // Every investor is invited to the panel; three have confirmed so far.
+  await db.insert(rsvps).values(
+    INVESTORS.map((i) => ({
+      id: `${ws}:rsvp:investor-panel:${i.key}`,
+      workspaceId: ws,
+      eventId: ids.event(ws, "investor-panel"),
+      personId: ids.person(ws, i.key),
+      status: i.confirmed ? ("confirmed" as const) : ("invited" as const),
     })),
   );
 }
