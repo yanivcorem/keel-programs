@@ -170,7 +170,8 @@ export const TOOLS = {
   }),
 
   draft_calendar_change: tool({
-    description: "Propose moving a startup's demo day slot. Nothing changes until the program manager approves it.",
+    description:
+      "Propose moving a startup's demo day slot. Whoever holds the target slot takes the old one, so one change covers a whole swap: draft it once, for the startup that asked. Nothing changes until the program manager approves it.",
     input: z.object({
       startupId: z.string(),
       fromSlot: z.number().int(),

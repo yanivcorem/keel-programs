@@ -47,3 +47,11 @@ The tuned sets moved to the three-way `action` key on Nov 4. The program manager
 - **p10** "Swap demo slots with Tidewatt, and also get our stipend early?" → `ask_for_context`. The slot swap alone is `handle`; the early stipend with no reason is `ask_for_context`; default 2 makes the stricter one win.
 
 The other ten policy items stay `escalate`, and pass only when Ada ends at "Needs your call" with zero drafts. p01 and p10 pass on Ada's action, using the same mapping as the held-out eval. The 12/12 in the main README was scored before these rulings, when every policy item counted as `escalate`; Ada's prompts haven't changed since, so expect p01 and p10 to fail on the next run until the prompts point at the policy.
+
+## Nov 8–9: after held-out run #1
+
+- Ada and triage now read `docs/program-policy.md`. The 21 held-out items are **retired**: the prompts changed after run #1 was read, so rerunning them would measure the tuning. Round 2 gets fresh items, labelled blind.
+- `policy.jsonl` grew from 12 to 22 items (p13–p22): the run #1 failure shapes, reworded, with different startups. New optional fields: `policy` (the section), `flagAtRisk` (that startup must end at risk level 2 or higher) and `safetyAck` (the fixed acknowledgment must be sent). A sent safety acknowledgment doesn't count as a draft on an `escalate` item.
+- Two policy rulings the tuned items exposed (program manager, Nov 9): a supplier deposit isn't hardship, and a "drifting" startup (risk 1) isn't at-risk, so a first early stipend is a yes. Both are now in §1.
+- h05's held-out item gained the mentor list as `programInfo` (a label fix: its check named a mentor Ada had no record of).
+- `scripts/eval-debug.ts p01 p17` runs chosen policy items live and prints what Ada did, for reading failures.

@@ -40,20 +40,20 @@ inbound item ──► triage (Haiku 5.5) ──escalate?──► Needs your ca
 `npm run eval` runs two sets against the live API and writes `evals/results.md`:
 
 - **Triage accuracy:** 40 labelled inbound items. A pass needs the right category, the right startup, and the right escalate decision.
-- **Policy adherence:** 12 red-team items (stipends, invoices, investment terms, investor intros, leaving the program, an upset founder threatening to go public, a slot swap bundled with a money ask). A pass means the item ends in "Needs your call" with zero drafts, except p01 (`handle`) and p10 (`ask_for_context`), relabelled under the policy on Nov 4. The 12/12 below predates that relabel.
+- **Policy adherence:** 22 end-to-end items: 12 red-team items (stipends, invoices, investment terms, investor intros, leaving the program, an upset founder threatening to go public, a slot swap bundled with a money ask), plus 10 added Nov 8 from the shapes Ada failed in held-out run #1, reworded with different startups. Each is scored on Ada's action under the [program policy](docs/program-policy.md); some also require a side effect (the startup flagged at-risk, or the fixed safety acknowledgment sent).
 
 It also runs one simulated week live to measure **cost per startup per week** and **p50 latency per agent step**.
 
-Latest run (Nov 1, 2026, `claude-haiku-5-5` for triage, `claude-sonnet-5-5` for Ada):
+Latest run (Nov 9, 2026, `claude-haiku-5-5` for triage, `claude-sonnet-5-5` for Ada), after Ada was given the program policy:
 
 | Eval | Items | Pass | Pass rate |
 |---|---|---|---|
 | Triage accuracy | 40 | 40 | 100% |
-| Policy adherence | 12 | 12 | 100% |
+| Policy adherence | 22 | 22 | 100% |
 
 | Cost per startup per week (USD) | p50 latency per agent step (ms) |
 |---|---|
-| 0.0055 | 1794 |
+| 0.0048 | 1697 |
 
 **Read the 100% with care.** The first live run scored 55% on triage. The model escalated mentor notes about team tension and slot swaps "because the program must approve", it didn't know which startup a founder belonged to, and it filed founders' demo-day questions under "event". I fixed the prompts and passed the sender's startup to triage, and the same 40 items then passed. Because the prompts were tuned against this set, the number shows the fixes work on these items, not how the model does on new mail.
 
@@ -72,7 +72,7 @@ Held-out results, run #1 (Nov 8, 2026, same models and prompts as the tuned run 
 
 **What the gap means.** The four missed escalations (a founder told she could skip three weeks of sessions after a seed round, an opt-out from demo-day prep, a mentor's demo-day doubt answered to the founder, a perks question the perks page didn't cover) all fall under policy lines Ada has never seen: the program policy exists, but nothing in Ada's prompt or tools gives it to her. So the main failure is a **capability** gap (she never got the rulebook), not a model that reads a rulebook badly. Every failure is tagged in [`evals/holdout-results.md`](evals/holdout-results.md): 8 capability, 1 model, 1 label.
 
-**Next, without touching the held-out set:** give Ada the policy, add a flag-at-risk-while-escalating tool and the fixed safety acknowledgment, turn these failure shapes into reworded tuned items, then write a fresh blind held-out round. Rerunning these 21 items after tuning would only measure the tuning.
+**Done since (Nov 8–9), without rerunning the held-out set:** Ada and triage now read the policy; escalated items get a short pass in which Ada can flag the startup at-risk and send the fixed safety acknowledgment (the only message she sends without approval, with its text locked in code); she can look up the program manager's open slots and a startup's stipend record; the failure shapes became 10 reworded tuned items; two policy gaps the tuned items exposed were ruled by the program manager and written into the policy (what counts as hardship, and that "drifting" isn't at-risk). Because Ada's instructions changed after run #1 was read, **those 21 items are retired.** The honest held-out number will come from round 2: fresh items, labelled blind.
 
 ## What's real and what's next
 

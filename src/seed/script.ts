@@ -28,7 +28,8 @@ export const SCRIPT: ScriptedItem[] = [
     subject: "Demo day slot",
     body:
       "Hi Sam, could Soilmind swap demo day slots with Tidewatt? Our lead investor contact can only attend the first slot. " +
-      "Lena said she's fine with it if the program is. Thanks, Mateo",
+      "Lena is cc'd. Thanks, Mateo\n\n" +
+      "Reply from Lena Okafor (Tidewatt): Confirmed from our side, happy to take slot 2. Lena",
     moment: 2,
   },
   {

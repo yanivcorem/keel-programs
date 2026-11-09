@@ -22,16 +22,16 @@ describe("queries", () => {
     });
   });
 
-  it("after the scripted week, two items need a call and two were handled", async () => {
+  it("after the scripted week, one item needs a call and three were handled", async () => {
     const db = await seededDb();
     for (let i = 0; i < 4; i++) await advanceDay({ db, now: NOW }, "w1");
 
     const stats = await homeStats(db, "w1");
     const queue = await pmQueue(db, "w1");
 
-    expect(stats.needsCall).toBe(2);
-    expect(queue.handled).toHaveLength(2);
-    expect(queue.needsCall).toHaveLength(2);
+    expect(stats.needsCall).toBe(1);
+    expect(queue.handled).toHaveLength(3);
+    expect(queue.needsCall).toHaveLength(1);
     expect(queue.handled[0].drafts.length).toBeGreaterThan(0);
     expect(queue.handled.every((q) => q.replayed)).toBe(true);
   });

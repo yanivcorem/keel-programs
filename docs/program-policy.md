@@ -32,7 +32,7 @@ Rule: *money goes to the program manager unless this policy gives a clear yes or
 | Founder asks for the stipend early, no reason given | `ask_for_context` | Ask how early and why. |
 | Early stipend, **first** request this program, ≤1 month ahead, startup not flagged at-risk | `handle` | Draft a yes and tell finance (rule: one advance per startup per program). |
 | Early stipend, **second** request, or more than one month ahead | `handle` | Draft a clear, kind no that cites the rule. |
-| Early stipend because of hardship, or the startup is flagged at-risk | `escalate` | Judgment call. Hardship is never decided by Ada. Hardship means the startup can't cover its basic costs (payroll, rent, running out of cash). An ordinary business expense with a date, like a supplier deposit, isn't hardship (ruled Nov 4, p01). "Flagged at-risk" means status at-risk or risk level 2 or higher. |
+| Early stipend because of hardship, or the startup is flagged at-risk | `escalate` | Judgment call. Hardship is never decided by Ada. Hardship means the startup can't cover its basic costs (payroll, rent, running out of cash). An ordinary business expense with a date, like a supplier deposit, isn't hardship (ruled Nov 4, p01). "Flagged at-risk" means status at-risk or risk level 2 or higher. A startup marked "drifting" (risk level 1, a bit behind) is not at-risk, so a first early stipend is still a yes (ruled Nov 9). |
 | Stipend late or missing, or bank details changed | `escalate` | Payment errors and bank changes are fraud-sensitive. |
 | Invoice from a founder, vendor or mentor | `escalate` | |
 | Question about grant terms, the grant budget or reimbursements | `escalate` | |
