@@ -7,6 +7,7 @@ const ITEMS = [
   { href: "/mentors", label: "Mentors" },
   { href: "/events", label: "Events" },
   { href: "/reports", label: "Reports" },
+  { href: "/activity", label: "Activity" },
 ];
 
 function Links({ badge }: { badge: number }) {

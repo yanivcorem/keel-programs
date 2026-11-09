@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
-import { agentRuns, drafts, events, inboundItems, people, programs, reports, rsvps, sessions, startups, workspaces } from "../db/schema";
+import { agentRuns, drafts, events, facts, inboundItems, people, programs, reports, rsvps, sessions, startups, workspaces } from "../db/schema";
 import { INVESTORS } from "../seed/cohort";
 
 export async function programHeader(db: Db, ws: string) {
@@ -147,4 +147,33 @@ export async function latestReport(db: Db, ws: string) {
     .orderBy(desc(reports.createdAt))
     .limit(1);
   return r ?? null;
+}
+
+// Every agent run, newest first, with what it touched. A report run lists the facts it read and the
+// Ada runs that wrote them: that's the visible handoff between the two agents.
+export async function activity(db: Db, ws: string) {
+  const runs = await db
+    .select({ run: agentRuns, subject: inboundItems.subject })
+    .from(agentRuns)
+    .leftJoin(inboundItems, eq(inboundItems.id, agentRuns.inboundItemId))
+    .where(eq(agentRuns.workspaceId, ws))
+    .orderBy(desc(agentRuns.createdAt));
+  const allFacts = await db.select().from(facts).where(eq(facts.workspaceId, ws));
+  const subjects = new Map(
+    (await db.select({ id: inboundItems.id, subject: inboundItems.subject }).from(inboundItems).where(eq(inboundItems.workspaceId, ws))).map(
+      (i) => [i.id, i.subject],
+    ),
+  );
+  return runs.map(({ run, subject }) => {
+    const written = run.inboundItemId && run.agent === "pm" ? allFacts.filter((f) => f.sourceInboundItemId === run.inboundItemId) : [];
+    const read =
+      run.agent === "report"
+        ? ((run.steps as { factsRead?: string[] }[])[0]?.factsRead ?? []).map((id) => allFacts.find((f) => f.id === id)).filter((f) => !!f)
+        : [];
+    const fromItems = [...new Set(read.map((f) => f.sourceInboundItemId).filter((x): x is string => !!x))].map((id) => ({
+      id,
+      subject: subjects.get(id) ?? id,
+    }));
+    return { ...run, subject, factsWritten: written.length, factsRead: read.length, fromItems };
+  });
 }

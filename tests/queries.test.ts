@@ -36,3 +36,23 @@ describe("queries", () => {
     expect(queue.handled.every((q) => q.replayed)).toBe(true);
   });
 });
+
+describe("activity", () => {
+  beforeEach(() => vi.stubEnv("ANTHROPIC_API_KEY", ""));
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("lists every run newest first and shows the report's handoff from Ada's items", async () => {
+    const { activity } = await import("../src/lib/queries");
+    const { draftWeeklyReport } = await import("../src/agent/report");
+    const { replayReportClient } = await import("../src/guard/replay");
+    const db = await seededDb();
+    for (let i = 0; i < 5; i++) await advanceDay({ db, now: NOW }, "w1");
+    await draftWeeklyReport(replayReportClient(), db, "w1", { replayed: true });
+
+    const runs = await activity(db, "w1");
+    expect(runs[0].agent).toBe("report");
+    expect(runs.filter((r) => r.agent === "pm")).toHaveLength(5);
+    expect(runs[0].factsRead).toBeGreaterThan(0);
+    expect(runs[0].fromItems.length).toBeGreaterThan(0);
+  });
+});
