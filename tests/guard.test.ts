@@ -41,7 +41,7 @@ describe("pickClient", () => {
   it("rate-limits one workspace without affecting another", async () => {
     const db = await seededDb();
     await seedWorkspace(db, "w2");
-    await addRuns(db, "w1", 10, 0.001);
+    await addRuns(db, "w1", 20, 0.001);
     expect((await pickClient(db, "w1", NOW, 1)).replayed).toBe(true);
     expect((await pickClient(db, "w2", NOW, 1)).replayed).toBe(false);
   });

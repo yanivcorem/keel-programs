@@ -128,7 +128,7 @@ export const facts = pgTable("facts", {
 export const agentRuns = pgTable("agent_runs", {
   id: text("id").primaryKey(),
   workspaceId: workspaceId(),
-  agent: text("agent", { enum: ["pm", "triage"] }).notNull(),
+  agent: text("agent", { enum: ["pm", "triage", "report"] }).notNull(),
   inboundItemId: text("inbound_item_id").references(() => inboundItems.id, { onDelete: "cascade" }),
   model: text("model").notNull(),
   inputTokens: integer("input_tokens").notNull().default(0),
@@ -137,5 +137,16 @@ export const agentRuns = pgTable("agent_runs", {
   latencyMs: integer("latency_ms").notNull().default(0),
   replayed: boolean("replayed").notNull().default(false),
   steps: jsonb("steps").notNull().default(sql`'[]'::jsonb`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+});
+
+export const reports = pgTable("reports", {
+  id: text("id").primaryKey(),
+  workspaceId: workspaceId(),
+  week: integer("week").notNull(),
+  // { sections: [{ heading, claims: [{ text, factIds, sources }] }], removed: [{ text, why }] }
+  body: jsonb("body").notNull(),
+  state: text("state", { enum: ["draft", "approved"] }).notNull().default("draft"),
+  runId: text("run_id").references(() => agentRuns.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
 });

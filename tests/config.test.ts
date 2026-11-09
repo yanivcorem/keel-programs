@@ -22,7 +22,7 @@ describe("config", () => {
     const config = await loadConfig();
     expect(config.productName).toBe("Keel");
     expect(config.agentName).toBe("Ada");
-    expect(config.rateLimitRunsPerHour).toBe(10);
+    expect(config.rateLimitRunsPerHour).toBe(20);
     expect(config.dailySpendCapUsd).toBe(5);
     expect(config.models.agent).toBe("claude-sonnet-5-5");
     expect(config.models.triage).toBe("claude-haiku-5-5");

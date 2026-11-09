@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
-import { agentRuns, drafts, events, inboundItems, people, programs, rsvps, sessions, startups, workspaces } from "../db/schema";
+import { agentRuns, drafts, events, inboundItems, people, programs, reports, rsvps, sessions, startups, workspaces } from "../db/schema";
 import { INVESTORS } from "../seed/cohort";
 
 export async function programHeader(db: Db, ws: string) {
@@ -136,4 +136,15 @@ export async function eventList(db: Db, ws: string) {
     // The newest run sheet for the event, if Ada has drafted one.
     runSheet: sheets.filter((d) => (d.payload as { eventId: string }).eventId === e.id).at(-1) ?? null,
   }));
+}
+
+export async function latestReport(db: Db, ws: string) {
+  const [r] = await db
+    .select({ report: reports, run: agentRuns })
+    .from(reports)
+    .leftJoin(agentRuns, eq(agentRuns.id, reports.runId))
+    .where(eq(reports.workspaceId, ws))
+    .orderBy(desc(reports.createdAt))
+    .limit(1);
+  return r ?? null;
 }

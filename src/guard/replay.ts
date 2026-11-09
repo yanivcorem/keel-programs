@@ -14,3 +14,11 @@ export function replayClients(simDay: number, workspaceId: string): { llm: LlmCl
   const local = JSON.parse(JSON.stringify(day).replaceAll("{ws}", workspaceId)) as Day;
   return { llm: scriptedClient(local.pm), triageLlm: scriptedClient(local.triage) };
 }
+
+// The recorded weekly report. Its fact ids are aliases (F1, F2...), so against a different set of facts
+// the code-enforced citation check simply removes whatever no longer has a source.
+export function replayReportClient(): LlmClient {
+  const report = (recorded as unknown as { report?: Anthropic.Message }).report;
+  if (!report) throw new Error("no recorded report");
+  return scriptedClient([report]);
+}

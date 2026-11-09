@@ -6,6 +6,7 @@ const ITEMS = [
   { href: "/startups", label: "Startups" },
   { href: "/mentors", label: "Mentors" },
   { href: "/events", label: "Events" },
+  { href: "/reports", label: "Reports" },
 ];
 
 function Links({ badge }: { badge: number }) {

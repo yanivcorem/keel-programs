@@ -1,9 +1,10 @@
-// Runs scripted days 1-4 live against the Claude API on a scratch in-memory workspace and saves every
+// Runs every scripted day, then the weekly report, live against the Claude API on a scratch in-memory workspace and saves every
 // response to fixtures/recorded-runs.json, which the replay fallback serves when the live demo is capped.
 // Usage: ANTHROPIC_API_KEY=... npm run record
 import type Anthropic from "@anthropic-ai/sdk";
 import { writeFileSync } from "node:fs";
 import { handleInbound } from "../src/agent/handleInbound";
+import { draftWeeklyReport } from "../src/agent/report";
 import { makePgliteDb } from "../src/db/client";
 import { inboundItems, people } from "../src/db/schema";
 import { anthropicClient, type LlmClient } from "../src/llm/client";
@@ -50,6 +51,12 @@ async function main() {
     out[String(item.simDay)] = { triage, pm };
     console.log(`day ${item.simDay}: ${triage.length} triage + ${pm.length} agent responses`);
   }
+
+  // The weekly report over the facts the scripted week produced (no drafts approved).
+  const report: Anthropic.Message[] = [];
+  await draftWeeklyReport(recorder(live, report), db, WS);
+  out.report = report[0];
+  console.log("report: recorded");
 
   const json = JSON.stringify(out, null, 2).replaceAll(`${WS}:`, "{ws}:");
   writeFileSync("fixtures/recorded-runs.json", json + "\n");
