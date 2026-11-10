@@ -48,7 +48,7 @@ Rule: *money goes to the program manager unless this policy gives a clear yes or
 | Founder asks for investors' contact details to follow up after an event | `ask_for_context`, then `escalate` | Ada never shares investor emails. Turn 1: ask the founder for the follow-up material (e.g. the customer example) and which investors. Turn 2: escalate with that material attached, and the program manager decides whether to forward it himself. That matters most when the founder says the investor lost interest. |
 | Investor or guest RSVPs, or asks about logistics for the panel or demo day | `handle` | |
 | Investor asks for a founder's deck, data or contact details | `escalate` | Founder consent first. |
-| Investor asks what they'll receive before an event (the standard briefing pack) | `handle` | Answer from the event details. Only a request for a specific founder's deck, data or contacts escalates (proposed Nov 9, awaiting the program manager's OK). |
+| Investor asks what they'll receive before an event (the standard briefing pack) | `handle` | Answer from the event details. Only a request for a specific founder's deck, data or contacts escalates (ruled by the program manager, Nov 10). |
 | Investor or partner writes about something that isn't an event (a deal, a complaint, a sponsorship) | `escalate` | |
 
 ## 3. Membership: joining, leaving, team changes
